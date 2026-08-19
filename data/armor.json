@@ -1,0 +1,38 @@
+[
+    {
+        "id": "leather_armor",
+        "name": "Armure en cuir",
+        "slot": "chest",
+        "required_level": 1,
+        "defense": 1,
+        "health": 0,
+        "speed": 1,
+        "rarity": "common",
+        "value": 10,
+        "sprite": "assets/sprites/armor/leather_armor.png"
+    },
+    {
+        "id": "chainmail_armor",
+        "name": "Armure en mailles",
+        "slot": "chest",
+        "required_level": 3,
+        "defense": 3,
+        "health": 0,
+        "speed": 1,
+        "rarity": "uncommon",
+        "value": 25,
+        "sprite": "assets/sprites/armor/chainmail_armor.png"
+    },
+    {
+        "id": "plate_armor",
+        "name": "Armure en plaques",
+        "slot": "chest",
+        "required_level": 3,
+        "defense": 8,
+        "health": 2,
+        "speed": 0,
+        "rarity": "uncommon",
+        "value": 50,
+        "sprite": "assets/sprites/armor/plate_armor.png"
+    }
+]

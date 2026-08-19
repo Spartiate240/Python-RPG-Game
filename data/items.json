@@ -1,0 +1,30 @@
+[
+    {
+        "id": "small_health_potion",
+        "name": "Potion de santé mineure",
+        "type": "potion",
+        "effect": "heal",
+        "heal": 5,
+        "value": 5,
+        "rarity": "common",
+        "sprite": "assets/sprites/items/small_health_potion.png"
+    },
+    {
+        "id": "large_health_potion",
+        "name": "Potion de santé majeure",
+        "type": "potion",
+        "effect": "heal",
+        "heal": 100,
+        "value": 50,
+        "rarity": "rare",
+        "sprite": "assets/sprites/items/large_health_potion.png"
+    },
+        {
+        "id": "bone",
+        "name": "Os",
+        "type": "material",
+        "value": 1,
+        "rarity": "common",
+        "sprite": "assets/sprites/items/bone.png"
+    }
+]

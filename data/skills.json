@@ -1,0 +1,53 @@
+[
+    {
+        "id": "slash",
+        "name": "Coup d'épée",
+        "type": "attack",
+        "damage": 10,
+        "crit_chance": 10,
+        "crit_damage": 50,
+        "cooldown": 3,
+        "target": "single_enemy",
+        "effect": "none",
+        "description": "Un coup d'épée rapide et précis.",
+        "sprite": "assets/sprites/skills/slash.png"
+    },
+    {
+        "id": "parry",
+        "name": "Parade",
+        "type": "defense",
+        "defense": 5,
+        "duration": 2,
+        "cooldown": 5,
+        "target": "self",
+        "effect": "block",
+        "description": "Bloque les attaques ennemies pendant un court instant.",
+        "sprite": "assets/sprites/skills/parry.png"
+    },
+    {
+        "id": "fireball",
+        "name": "Boule de feu",
+        "type": "attack",
+        "damage": 25,
+        "crit_chance": 10,
+        "crit_damage": 30,
+        "cooldown": 4,
+        "target": "single_enemy",
+        "effect": "burn",
+        "description": "Lance une boule de feu qui inflige des dégâts sur la durée.",
+        "sprite": "assets/sprites/skills/fireball.png"
+    },
+    {
+        "id": "flame_wave",
+        "name": "Vague de flammes",
+        "type": "attack",
+        "damage": 10,
+        "crit_chance": 5,
+        "crit_damage": 20,
+        "cooldown": 3,
+        "target": "all_enemies",
+        "effect": "burn",
+        "description": "Crée une vague de flammes qui touche tous les ennemis.",
+        "sprite": "assets/sprites/skills/flame_wave.png"
+    }
+]

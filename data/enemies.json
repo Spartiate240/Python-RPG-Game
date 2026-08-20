@@ -1,0 +1,35 @@
+[
+  {
+    "id": "goblin",
+    "name": "Gobelin",
+    "type": "beast",
+    "health": 3,
+    "defense": 0,
+    "damage": 10,
+    "speed": 2,
+    "crit_chance": 0,
+    "crit_damage": 0,
+    "level": 1,
+    "rarity": "common",
+    "given_exp": 1,
+    "skills": ["slash", "jump"],
+    "drops": {"iron_sword": 1, "gold_coin": 50},
+    "sprite": "assets/sprites/enemies/goblin.png"
+  },
+  {
+    "id": "skeleton",
+    "name": "Squelette",
+    "type": "undead",
+    "health": 7,
+    "defense":1,
+    "damage": 28,
+    "speed": 2,
+    "crit_chance": 1,
+    "crit_damage": 5,
+    "given_exp": 2,
+    "rarity": "uncommon",
+    "skills": ["bone_shot", "bone_wall"],
+    "drops": {"bone": 20, "fire_staff": 1},
+    "sprite": "assets/sprites/enemies/skeleton.png"
+  }
+]

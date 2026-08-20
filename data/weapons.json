@@ -1,0 +1,30 @@
+[
+  {
+    "id": "iron_sword",
+    "name": "Épée de fer",
+    "type": "sword",
+    "damage": 1,
+    "speed": 1.0,
+    "crit_chance": 0,
+    "crit_damage": 0,
+    "level_required": 1,
+    "rarity": "common",
+    "value": 50,
+    "skills": ["slash", "parry"],
+    "sprite": "assets/sprites/weapons/sword_iron.png"
+  },
+  {
+    "id": "fire_staff",
+    "name": "Bâton de feu",
+    "type": "staff",
+    "damage": 2,
+    "speed": 0.7,
+    "crit chance": 1,
+    "crit damage": 5,
+    "level_required": 8,
+    "rarity": "rare",
+    "value": 320,
+    "skills": ["fireball", "flame_wave"],
+    "sprite": "assets/sprites/weapons/fire_staff.png"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "members": [
+    {
+      "type": "player",
+      "name": "Héros",
+      "hp": 98,
+      "max_hp": 100,
+      "attack": 15,
+      "defense": 8,
+      "speed": 10,
+      "level": 1,
+      "xp": 2,
+      "gold": 0,
+      "weapon": null,
+      "armor": null
+    }
+  ],
+  "active_indexes": [
+    0
+  ]
+}

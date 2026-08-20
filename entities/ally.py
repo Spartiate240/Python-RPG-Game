@@ -8,13 +8,11 @@ spécialiser le "cerveau" (choose_action) et quelques attributs.
 """
 
 from __future__ import annotations
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from entities.combatant import Combatant, Action
 
 if TYPE_CHECKING:
-    from items.weapon import Weapon
-    from items.armor import Armor
     from skills.skills import Skill
 
 
@@ -33,26 +31,59 @@ class Ally(Combatant):
         self.level = level
         self.xp = xp
 
-        self.weapon: Optional["Weapon"] = None
-        self.armor: Optional["Armor"] = None
+        self.weapon: Any | None = None
+        self.helmet: Any | None = None
+        self.chest: Any | None = None
+        self.legs: Any | None = None
+        self.boots: Any | None = None
+        self.arms: Any | None = None
         self.skills: list["Skill"] = []
 
     # ---- Équipement ------------------------------------------------
-    def equip_weapon(self, weapon: "Weapon") -> None:
+    def equip_weapon(self, weapon: Any) -> None:
         self.weapon = weapon
 
-    def equip_armor(self, armor: "Armor") -> None:
-        self.armor = armor
+    def equip_helmet(self, helmet: Any) -> None:
+        self.helmet = helmet
+
+    def equip_chest(self, chest: Any) -> None:
+        self.chest = chest
+
+    def equip_legs(self, legs: Any) -> None:
+        self.legs = legs
+
+    def equip_boots(self, boots: Any) -> None:
+        self.boots = boots
+
+    def equip_arms(self, arms: Any) -> None:
+        self.arms = arms
+
+    def equip_armor(self, armor: Any) -> None:
+        self.equip_chest(armor)
+
+    @property
+    def armor(self) -> Any | None:
+        return self.chest
+
+    @armor.setter
+    def armor(self, value: Any | None) -> None:
+        self.chest = value
 
     @property
     def total_attack(self) -> int:
-        bonus = self.weapon.attack_bonus if self.weapon else 0
+        bonus = _item_value(self.weapon, ("attack_bonus", "damage"))
         return self.attack + bonus
 
     @property
     def total_defense(self) -> int:
-        bonus = self.armor.defense_bonus if self.armor else 0
-        return self.defense + bonus
+        bonuses = (
+            _item_value(self.helmet, ("defense_bonus", "defense")),
+            _item_value(self.chest, ("defense_bonus", "defense")),
+            _item_value(self.legs, ("defense_bonus", "defense")),
+            _item_value(self.boots, ("defense_bonus", "defense")),
+            _item_value(self.arms, ("defense_bonus", "defense")),
+        )
+        return self.defense + sum(bonuses)
 
     # ---- Compétences -------------------------------------------------
     def learn_skill(self, skill: "Skill") -> None:
@@ -67,3 +98,19 @@ class Ally(Combatant):
 
     # choose_action() reste abstrait : Player (input utilisateur)
     # et Companion (IA) l'implémentent chacun à leur façon.
+
+
+def _item_value(item: Any | None, keys: tuple[str, ...]) -> int:
+    if item is None:
+        return 0
+    if isinstance(item, dict):
+        for key in keys:
+            value = item.get(key)
+            if isinstance(value, (int, float)):
+                return int(value)
+        return 0
+    for key in keys:
+        value = getattr(item, key, None)
+        if isinstance(value, (int, float)):
+            return int(value)
+    return 0

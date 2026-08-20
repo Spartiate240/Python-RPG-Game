@@ -1,0 +1,39 @@
+{
+  "members": [
+    {
+      "type": "player",
+      "name": "Héros",
+      "hp": 98,
+      "max_hp": 100,
+      "attack": 15,
+      "defense": 8,
+      "speed": 10,
+      "level": 1,
+      "xp": 4,
+      "gold": 0,
+      "weapon": null,
+      "helmet": null,
+      "chest": null,
+      "legs": null,
+      "boots": null,
+      "arms": null
+    }
+  ],
+  "active_indexes": [
+    0
+  ],
+  "game_state": {
+    "state": "EXPLORATION",
+    "location": "village"
+  },
+  "inventory": {
+    "items": {
+      "health_potion": 3,
+      "mana_potion": 2
+    },
+    "weapons": {},
+    "armors": {
+      "plate_armor": 1
+    }
+  }
+}

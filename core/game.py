@@ -18,13 +18,13 @@ from core.menu import Menu
 from core.fight import Fight
 
 PROGRESSION_DIR = Path("progression")
-PARTY_SAVE_PATH = PROGRESSION_DIR / "party.json"
-STATE_SAVE_PATH = PROGRESSION_DIR / "game_state.json"
+GAME_SAVE_PATH = PROGRESSION_DIR / "Saved_progress.json"
 
 
 class GameState(Enum):
     MAIN_MENU = auto()
     EXPLORATION = auto()
+    STATUS = auto()
     FIGHT = auto()
     SHOP = auto()
     GAME_OVER = auto()
@@ -35,7 +35,9 @@ class Game:
     def __init__(self) -> None:
         self.state = GameState.MAIN_MENU
         self.party: Party | None = None
+        self.location: str | None = None
         self.menu = Menu()
+        self.inventory: dict[str, int] = {"items": {}, "weapons": {}, "armors": {}}
 
     # ---- Cycle de vie -----------------------------------------------
     def run(self) -> None:
@@ -46,6 +48,8 @@ class Game:
                 self._handle_exploration()
             elif self.state == GameState.FIGHT:
                 self._handle_fight()
+            elif self.state == GameState.STATUS:
+                self._handle_status()
             elif self.state == GameState.SHOP:
                 self._handle_shop()
             elif self.state == GameState.GAME_OVER:
@@ -56,10 +60,10 @@ class Game:
         choice = self.menu.show_main_menu()
         if choice == "new_game":
             self.party = self._new_party()
+            self.location = None
             self.state = GameState.EXPLORATION
         elif choice == "load_game":
-            self.party = self._load_party()
-            self.state = self._load_game_state()
+            self.party, self.state = self._load_progress()
         elif choice == "quit":
             self.state = GameState.QUIT
 
@@ -69,10 +73,12 @@ class Game:
             self.state = GameState.FIGHT
         elif choice == "shop":
             self.state = GameState.SHOP
+        elif choice == "party_status":
+            self.state = GameState.STATUS
         elif choice == "save":
-            self._save_game()
-        elif choice == "quit":
-            self._save_game()
+            self._save_progress()
+        elif choice == "quit":  # Sauvegarde aussi
+            self._save_progress()
             self.state = GameState.QUIT
 
     def _handle_fight(self) -> None:
@@ -86,39 +92,54 @@ class Game:
         self.menu.show_shop_menu(self.party)
         self.state = GameState.EXPLORATION
 
+    def _handle_status(self) -> None:
+        self.menu.show_party_status(self.party)
+        if self.party and self.party.leader:
+            self.menu._show_inventory(self.party, self.inventory)
+        self.state = GameState.EXPLORATION
+
     def _handle_game_over(self) -> None:
         self.menu.show_game_over()
         self.state = GameState.QUIT
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:
-        hero = Player(name="Héros", max_hp=100, attack=15, defense=8, speed=10)
+        hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1)
         return Party(members=[hero])
 
-    def _save_game(self) -> None:
-        self._save_party()
-        self._save_game_state()
+    def _save_progress(self) -> None:
+        if self.party is None:
+            return
 
-    def _save_party(self) -> None:
-        self._write_json(PARTY_SAVE_PATH, self.party.to_dict())
+        data = self.party.to_dict()
+        game_state = {"state": self.state.name}
+        if self.location is not None:
+            game_state["location"] = self.location
+        data["game_state"] = game_state
+        data["inventory"] = self.inventory
+        self._write_json(GAME_SAVE_PATH, data)
 
-    def _save_game_state(self) -> None:
-        self._write_json(STATE_SAVE_PATH, {"state": self.state.name})
+    def _load_progress(self) -> tuple[Party, GameState]:
+        if not GAME_SAVE_PATH.exists():
+            return self._new_party(), GameState.EXPLORATION
 
-    def _load_party(self) -> Party:
-        if not PARTY_SAVE_PATH.exists():
-            return self._new_party()
-        data = self._read_json(PARTY_SAVE_PATH)
-        return Party.from_dict(data)
+        data = self._read_json(GAME_SAVE_PATH)
+        self.location = None
 
-    def _load_game_state(self) -> GameState:
-        if not STATE_SAVE_PATH.exists():
-            return GameState.EXPLORATION
-        data = self._read_json(STATE_SAVE_PATH)
+        game_state = data.get("game_state", {})
+        if isinstance(game_state, dict):
+            self.location = game_state.get("location")
+            state_name = game_state.get("state", GameState.EXPLORATION.name)
+        else:
+            state_name = GameState.EXPLORATION.name
+
+        self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}})
         try:
-            return GameState[data.get("state", GameState.EXPLORATION.name)]
+            state = GameState[state_name]
         except KeyError:
-            return GameState.EXPLORATION
+            state = GameState.EXPLORATION
+
+        return Party.from_dict(data), state
 
     @staticmethod
     def _write_json(path: Path, data: dict) -> None:

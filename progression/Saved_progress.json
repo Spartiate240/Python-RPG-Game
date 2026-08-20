@@ -9,7 +9,7 @@
       "defense": 8,
       "speed": 10,
       "level": 1,
-      "xp": 2,
+      "xp": 4,
       "gold": 0,
       "weapon": null,
       "armor": null
@@ -17,5 +17,9 @@
   ],
   "active_indexes": [
     0
-  ]
+  ],
+  "game_state": {
+    "state": "EXPLORATION",
+    "location": "village"
+  }
 }

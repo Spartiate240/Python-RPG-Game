@@ -3,11 +3,12 @@
 ├── pyproject.toml
 │
 ├── data/
-│   ├── weapons.json
+│   ├── weapons.json        
 │   ├── armors.json
 │   ├── enemies.json
 │   ├── xp_table.json
 │   ├── regions.json
+│   ├── items.json
 │   └── assets/
 │       └── sprites/...
 │
@@ -31,11 +32,12 @@
 │   ├── base.py                  # classe Item (dataclass)
 │   ├── weapon.py
 │   ├── armor.py
-│   └── factory.py                # ItemFactory — charge armes ET armures
+│   ├── item.py
+│   └── item_factory.py                # ItemFactory — charge armes ET armures
 │
-├── items/
+├── skills/
 │   ├── skills_factory.py
-│   └── skills.py                 
+│   └── skills.py
 │
 ├── progression/
 │    └── level_manager.py          # check_level_up(ally: Ally) — s'applique à Player et Companion
@@ -44,3 +46,7 @@
     ├── region.py                # Region : id, ennemis possibles, connexions vers autres régions
     └── world_manager.py         # état courant (région active), transitions
 
+
+
+
+Possibility of houses, settlement in longer run

@@ -24,6 +24,7 @@ GAME_SAVE_PATH = PROGRESSION_DIR / "Saved_progress.json"
 class GameState(Enum):
     MAIN_MENU = auto()
     EXPLORATION = auto()
+    STATUS = auto()
     FIGHT = auto()
     SHOP = auto()
     GAME_OVER = auto()
@@ -36,6 +37,7 @@ class Game:
         self.party: Party | None = None
         self.location: str | None = None
         self.menu = Menu()
+        self.inventory: dict[str, int] = {"items": {}, "weapons": {}, "armors": {}}
 
     # ---- Cycle de vie -----------------------------------------------
     def run(self) -> None:
@@ -46,6 +48,8 @@ class Game:
                 self._handle_exploration()
             elif self.state == GameState.FIGHT:
                 self._handle_fight()
+            elif self.state == GameState.STATUS:
+                self._handle_status()
             elif self.state == GameState.SHOP:
                 self._handle_shop()
             elif self.state == GameState.GAME_OVER:
@@ -69,9 +73,11 @@ class Game:
             self.state = GameState.FIGHT
         elif choice == "shop":
             self.state = GameState.SHOP
+        elif choice == "party_status":
+            self.state = GameState.STATUS
         elif choice == "save":
             self._save_progress()
-        elif choice == "quit":
+        elif choice == "quit":  # Sauvegarde aussi
             self._save_progress()
             self.state = GameState.QUIT
 
@@ -86,13 +92,19 @@ class Game:
         self.menu.show_shop_menu(self.party)
         self.state = GameState.EXPLORATION
 
+    def _handle_status(self) -> None:
+        self.menu.show_party_status(self.party)
+        if self.party and self.party.leader:
+            self.menu._show_inventory(self.party, self.inventory)
+        self.state = GameState.EXPLORATION
+
     def _handle_game_over(self) -> None:
         self.menu.show_game_over()
         self.state = GameState.QUIT
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:
-        hero = Player(name="Héros", max_hp=100, attack=15, defense=8, speed=10)
+        hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1)
         return Party(members=[hero])
 
     def _save_progress(self) -> None:
@@ -104,6 +116,7 @@ class Game:
         if self.location is not None:
             game_state["location"] = self.location
         data["game_state"] = game_state
+        data["inventory"] = self.inventory
         self._write_json(GAME_SAVE_PATH, data)
 
     def _load_progress(self) -> tuple[Party, GameState]:
@@ -120,6 +133,7 @@ class Game:
         else:
             state_name = GameState.EXPLORATION.name
 
+        self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}})
         try:
             state = GameState[state_name]
         except KeyError:

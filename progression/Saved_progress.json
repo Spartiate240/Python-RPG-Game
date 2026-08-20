@@ -12,7 +12,11 @@
       "xp": 4,
       "gold": 0,
       "weapon": null,
-      "armor": null
+      "helmet": null,
+      "chest": null,
+      "legs": null,
+      "boots": null,
+      "arms": null
     }
   ],
   "active_indexes": [
@@ -21,5 +25,15 @@
   "game_state": {
     "state": "EXPLORATION",
     "location": "village"
+  },
+  "inventory": {
+    "items": {
+      "health_potion": 3,
+      "mana_potion": 2
+    },
+    "weapons": {},
+    "armors": {
+      "plate_armor": 1
+    }
   }
 }

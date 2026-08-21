@@ -1,5 +1,5 @@
 # Python-RPG_Gamerpg/
-"""
+```
 ├── main.py
 ├── pyproject.toml
 │
@@ -46,7 +46,7 @@
 └── world/
     ├── region.py                # Region : id, ennemis possibles, connexions vers autres régions
     └── world_manager.py         # état courant (région active), transitions
-"""
+```
 
 
 

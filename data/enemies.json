@@ -14,7 +14,7 @@
     "given_exp": 1,
     "skills": ["slash", "jump"],
     "drops": {"iron_sword": 1, "gold_coin": 50},
-    "sprite": "assets/sprites/enemies/goblin.png"
+    "sprite": "assets/sprites/enemies/goblin.gif"
   },
   {
     "id": "skeleton",
@@ -30,6 +30,6 @@
     "rarity": "uncommon",
     "skills": ["bone_shot", "bone_wall"],
     "drops": {"bone": 20, "fire_staff": 1},
-    "sprite": "assets/sprites/enemies/skeleton.png"
+    "sprite": "assets/sprites/enemies/skeleton.gif"
   }
 ]

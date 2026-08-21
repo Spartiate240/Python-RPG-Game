@@ -12,7 +12,7 @@
     "rarity": "common",
     "value": 50,
     "skills": ["slash", "parry"],
-    "sprite": "assets/sprites/weapons/sword_iron.png"
+    "sprite": "assets/sprites/weapons/iron_sword.png"
   },
   {
     "id": "fire_staff",

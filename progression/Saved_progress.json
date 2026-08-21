@@ -35,5 +35,6 @@
     "armors": {
       "plate_armor": 1
     }
-  }
+  },
+  "sprite": "assets/sprites/player/Player_M_1.png"
 }

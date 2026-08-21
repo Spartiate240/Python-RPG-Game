@@ -1,17 +1,30 @@
 """
 main.py
- 
-Point d'entrée du jeu. Ne devrait quasiment rien faire d'autre
-que démarrer la boucle principale gérée par core/game.py.
+
+Point d'entrée du jeu. Lance la version pygame par défaut,
+ou la version terminal avec --text.
 """
- 
+
+from __future__ import annotations
+
+import argparse
+
 from core.game import Game
- 
- 
+
+
 def main() -> None:
-    game = Game()
-    game.run()
- 
- 
+    parser = argparse.ArgumentParser(description="Python RPG Game")
+    parser.add_argument("--text", action="store_true", help="Lancer la version terminal")
+    args = parser.parse_args()
+
+    if args.text:
+        Game().run()
+        return
+
+    from core.gui import PygameApp
+
+    PygameApp().run()
+
+
 if __name__ == "__main__":
     main()

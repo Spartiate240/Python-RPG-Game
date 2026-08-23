@@ -556,7 +556,7 @@ class PygameApp:
         if theme in self.ui_manifest_cache:
             return self.ui_manifest_cache[theme]
 
-        manifest_path = UI_DIR / "sprites_extracted" / theme / "manifest.json"
+        manifest_path = UI_DIR / theme / "manifest.json"
         if not manifest_path.exists():
             self.ui_manifest_cache[theme] = []
             return []
@@ -573,7 +573,7 @@ class PygameApp:
         if cache_key in self.ui_sprite_cache:
             return self.ui_sprite_cache[cache_key]
 
-        extracted_path = UI_DIR / "sprites_extracted" / theme / f"{sprite_id}.png"
+        extracted_path = UI_DIR / theme / f"{sprite_id}.png"
         if extracted_path.exists():
             sprite = pygame.image.load(str(extracted_path)).convert_alpha()
         else:
@@ -715,7 +715,7 @@ class PygameApp:
         if self.battle is None:
             return
         if self.battle.result is not None:
-            self._handle_buttons(position, self.battle_result_buttons())
+            self._handle_buttons(position, self._battle_result_buttons())
             return
         actor = self.battle.current_actor
         if actor is None or not isinstance(actor, Player):
@@ -841,7 +841,7 @@ class PygameApp:
 
     def _main_hero_sprite(self) -> pygame.Surface:
         # Portrait du héros utilisé sur le menu principal et les cartes de combat.
-        return self._load_sprite("data/assets/sprites/player/Player_M_1.png", (240, 240), "Héros")
+        return self._load_sprite("data/assets/sprites/player/ff_000.png", (240, 240), Player.get_name())
 
     def _enemy_sprite_path(self) -> str | None:
         if self.battle is None:
@@ -894,7 +894,7 @@ class PygameApp:
 
     def _draw_main_menu(self) -> None:
         # Zone 1: colonne gauche avec titre, texte d'accroche et boutons.
-        # Zone 2: carte décorative à droite avec le portrait du héros.
+        # Zone 2: carte décorative à droite avec le portrait du Joueur.
         self._draw_panel(pygame.Rect(60, 70, 520, 590), PANEL)
         self._draw_text("Python RPG", (130, 225), self.font_huge, ACCENT)
         self._draw_text("<PLACE HOLDER>", (130, 300), self.font, TEXT)
@@ -1113,7 +1113,7 @@ class PygameApp:
         if self.battle is None:
             return
         if self.battle.result is not None:
-            self._handle_buttons(position, self.battle_result_buttons())
+            self._handle_buttons(position, self._battle_result_buttons())
             return
 
         actor = self.battle.current_actor
@@ -1127,7 +1127,3 @@ class PygameApp:
         self._handle_buttons(position, self._battle_action_buttons())
 
 
-
-    def battle_result_buttons(self) -> list[Button]:
-        # Même chose: la version de l'écran de fin renvoie simplement les boutons standard.
-        return self._battle_result_buttons()

@@ -131,3 +131,8 @@ class Player(Ally):
             if item is not None
         ]
         return player
+
+
+    @classmethod
+    def get_name(cls) -> str:
+        return cls.__name__

@@ -33,15 +33,21 @@ SCREEN_SIZE = (1280, 720)
 # Déplacer ces valeurs suffit à recentrer les colonnes, les boutons et le bandeau
 # de retour sans avoir à modifier chaque coordonnée une par une dans le code.
 STATUS_PANEL_RECT = pygame.Rect(50, 60, 1180, 620)
-STATUS_LEFT_X = 95
+STATUS_LEFT_X = 200
 STATUS_RIGHT_X = 665
 STATUS_TITLE_Y = 100
 STATUS_HINT_Y = 145
-STATUS_CONTENT_Y = 180
+STATUS_CONTENT_Y = 200
 STATUS_ROW_GAP = 44
 STATUS_ITEM_ROW_GAP = 36
-STATUS_COLUMN_W = 520
-STATUS_BACK_BUTTON_RECT = pygame.Rect(900, 610, 220, 56)
+STATUS_COLUMN_W = 410
+STATUS_EQUIPPED_ROWS = 6
+# Colonne droite: d'abord les emplacements équipés du personnage sélectionné,
+# puis l'inventaire équipable, en dessous.
+STATUS_EQUIPPED_Y = STATUS_CONTENT_Y + 36
+STATUS_INVENTORY_TITLE_Y = STATUS_EQUIPPED_Y + STATUS_EQUIPPED_ROWS * STATUS_ROW_GAP
+STATUS_INVENTORY_Y = STATUS_INVENTORY_TITLE_Y + 36
+STATUS_BACK_BUTTON_RECT = pygame.Rect(1075, 610, 130, 56)
 STATUS_FEEDBACK_RECT = pygame.Rect(95, 600, 1085, 48)
 STATUS_LABEL_ICON_SIZE = (24, 24)
 STATUS_ITEM_ICON_SIZE = (28, 28)
@@ -238,6 +244,8 @@ class PygameApp:
         self.pending_targeting = False
         # Message court pour confirmer une action d'équipement ou de retrait.
         self.status_feedback = ""
+        # Personnage actuellement sélectionné dans l'écran statut (index dans party.members).
+        self.selected_member_index = 0
         # Les sprites UI existent sous deux formes:
         # - fichiers extraits, faciles à charger directement;
         # - spritesheet + manifeste, utiles si le sprite extrait n'existe pas encore.
@@ -363,13 +371,22 @@ class PygameApp:
             return item.get("slot") == "weapon" or ("damage" in item and not item.get("slot"))
         return getattr(item, "slot", "") == "weapon" or (hasattr(item, "damage") and not getattr(item, "slot", None))
 
+    def _selected_member(self) -> Combatant | None:
+        # Personnage actif dans l'écran statut: c'est lui dont on affiche
+        # et modifie l'équipement quand on clique sur les colonnes de droite.
+        if self.party is None or not self.party.members:
+            return None
+        if not 0 <= self.selected_member_index < len(self.party.members):
+            self.selected_member_index = 0
+        return self.party.members[self.selected_member_index]
+
     def _equip_item(self, item: object | None) -> None:
         # Même règle que dans le menu texte: on retire l'objet en place,
         # on enlève le nouvel objet de l'inventaire, puis on l'équipe.
-        if self.party is None or self.party.leader is None or item is None:
+        player = self._selected_member()
+        if player is None or item is None:
             return
 
-        player = self.party.leader
         slot = self._item_slot(item)
 
         if self._is_weapon(item):
@@ -424,11 +441,12 @@ class PygameApp:
         self.status_feedback = f"{self._item_label(item)} équipé."
 
     def _unequip_slot(self, slot: str) -> None:
-        # Cliquer sur un slot équipé le remet simplement dans l'inventaire.
-        if self.party is None or self.party.leader is None:
+        # Cliquer sur un slot équipé le remet simplement dans l'inventaire
+        # du personnage actuellement sélectionné.
+        player = self._selected_member()
+        if player is None:
             return
 
-        player = self.party.leader
         if slot == "weapon" and player.weapon is not None:
             player.inventory.append(player.weapon)
             player.equip_weapon(None)
@@ -454,12 +472,32 @@ class PygameApp:
             player.equip_arms(None)
             self.status_feedback = "Bras retirés."
 
-    def _status_equipped_buttons(self) -> list[Button]:
-        # Colonne gauche de l'écran statut: les emplacements actuellement portés.
-        if self.party is None or self.party.leader is None:
+    def _status_member_buttons(self) -> list[Button]:
+        # Colonne gauche de l'écran statut: un bouton par membre du groupe,
+        # utilisé pour choisir de quel personnage on affiche l'équipement à droite.
+        if self.party is None:
             return []
 
-        player = self.party.leader
+        buttons: list[Button] = []
+        for index, member in enumerate(self.party.members):
+            rect = pygame.Rect(STATUS_LEFT_X, STATUS_CONTENT_Y + index * 96, STATUS_COLUMN_W, 84)
+            buttons.append(
+                Button(
+                    member.name,
+                    rect,
+                    f"select_member:{index}",
+                    payload={"index": index},
+                )
+            )
+        return buttons
+
+    def _status_equipped_buttons(self) -> list[Button]:
+        # Colonne droite de l'écran statut: les emplacements actuellement portés
+        # par le personnage sélectionné à gauche. Cliquer dessus les retire.
+        player = self._selected_member()
+        if player is None:
+            return []
+
         slots = [
             ("weapon", "Arme", player.weapon),
             ("helmet", "Tête", player.helmet),
@@ -472,11 +510,11 @@ class PygameApp:
         buttons: list[Button] = []
         for index, (slot, label, item) in enumerate(slots):
             text = f"{label}: {self._item_label(item)}"
-            row_y = STATUS_CONTENT_Y + index * STATUS_ROW_GAP
+            row_y = STATUS_EQUIPPED_Y + index * STATUS_ROW_GAP
             buttons.append(
                 Button(
                     text,
-                    pygame.Rect(STATUS_LEFT_X, row_y, STATUS_COLUMN_W, 36),
+                    pygame.Rect(STATUS_RIGHT_X, row_y, STATUS_COLUMN_W, 36),
                     f"unequip:{slot}",
                     payload={"slot": slot, "item": item, "kind": "equipped"},
                     enabled=item is not None,
@@ -485,26 +523,29 @@ class PygameApp:
         return buttons
 
     def _status_inventory_buttons(self) -> list[Button]:
-        # Colonne droite de l'écran statut:
-        # on y fusionne l'inventaire du personnage et le stock sauvegardé,
-        # pour que les armures et armes non portées restent visibles.
-        if self.party is None or self.party.leader is None:
+        # Colonne droite de l'écran statut, sous les emplacements équipés:
+        # on y fusionne l'inventaire du personnage sélectionné et le stock
+        # sauvegardé, pour que les armures et armes non portées restent visibles.
+        player = self._selected_member()
+        if player is None:
             return []
 
         buttons: list[Button] = []
         row_index = 0
 
-        for item in self.party.leader.inventory:
+        for item in player.inventory:
             label = self._item_label(item)
             slot = self._item_slot(item)
             suffix = f" [{slot}]" if slot else ""
-            row_y = STATUS_CONTENT_Y + row_index * STATUS_ITEM_ROW_GAP
+            row_y = STATUS_INVENTORY_Y + row_index * STATUS_ITEM_ROW_GAP
             buttons.append(
                 Button(
                     f"{label}{suffix}",
                     pygame.Rect(STATUS_RIGHT_X, row_y, STATUS_COLUMN_W, 32),
                     f"equip:{row_index}",
                     payload={"item": item, "index": row_index, "kind": "inventory"},
+                    sprite_theme = "freefantasy",
+                    sprite_id = "ff_001"
                 )
             )
             row_index += 1
@@ -515,7 +556,7 @@ class PygameApp:
                 item = self._item_from_stock(item_id)
                 if item is None:
                     continue
-                row_y = STATUS_CONTENT_Y + row_index * STATUS_ITEM_ROW_GAP
+                row_y = STATUS_INVENTORY_Y + row_index * STATUS_ITEM_ROW_GAP
                 buttons.append(
                     Button(
                         f"{self._item_label(item)} x{quantity}",
@@ -529,10 +570,17 @@ class PygameApp:
         return buttons
 
     def _handle_status_click(self, position: tuple[int, int]) -> None:
-        # Centralise les clics de l'écran statut: retour, equip, unequip.
+        # Centralise les clics de l'écran statut: retour, sélection de
+        # personnage, equip, unequip.
         for button in self._status_buttons():
             if button.rect.collidepoint(position):
                 self._activate_button(button.action)
+                return
+
+        for button in self._status_member_buttons():
+            if button.rect.collidepoint(position):
+                self.selected_member_index = int(button.payload["index"])
+                self.status_feedback = ""
                 return
 
         for button in self._status_equipped_buttons():
@@ -541,11 +589,10 @@ class PygameApp:
                 self._unequip_slot(slot)
                 return
 
-        if self.party is None or self.party.leader is None:
+        if self._selected_member() is None:
             return
 
-        inventory_buttons = self._status_inventory_buttons()
-        for button in inventory_buttons:
+        for button in self._status_inventory_buttons():
             if button.rect.collidepoint(position):
                 self._equip_item(button.payload.get("item"))
                 return
@@ -740,6 +787,7 @@ class PygameApp:
         self.inventory = {"items": {}, "weapons": {}, "armors": {}}
         self.battle = None
         self.pending_targeting = False
+        self.selected_member_index = 0
         self.state = "exploration"
 
     def _load_game(self) -> None:
@@ -749,6 +797,7 @@ class PygameApp:
         self.inventory = self.core.inventory
         self.battle = None
         self.pending_targeting = False
+        self.selected_member_index = 0
         self.state = "game_over" if loaded_state == GameState.GAME_OVER else "exploration"
 
     def _save_game(self) -> None:
@@ -917,9 +966,9 @@ class PygameApp:
         self._draw_text("Exploration", (95, 100), self.font_big, ACCENT)
         self._draw_text("Le groupe avance dans les terres hostiles.", (95, 150), self.font, MUTED)
         gold = self.party.leader.gold if self.party and self.party.leader else 0
-        self._draw_text(f"Or: {gold}", (95, 195), self.font, SUCCESS)
+        self._draw_text(f"Or: {gold}", (130, 230), self.font, SUCCESS)
         self._draw_buttons(self._exploration_buttons())
-        self._draw_party_summary((95, 270))
+        self._draw_party_summary((125, 270))
 
         # Panneau droit: plus de sprite "Ennemi" placeholder tant qu'aucun combat
         # n'est en cours (il ne servait qu'à occuper l'espace avant une rencontre).
@@ -929,15 +978,19 @@ class PygameApp:
     def _draw_status(self) -> None:
         # L'écran statut est découpé en trois zones:
         # - le titre et l'aide en haut,
-        # - la colonne gauche pour ce qui est déjà équipé,
-        # - la colonne droite pour les objets visibles et cliquables.
+        # - la colonne gauche pour choisir un personnage du groupe,
+        # - la colonne droite pour son équipement (porté + inventaire), cliquable.
         self._draw_panel(STATUS_PANEL_RECT, PANEL)
         self._draw_text("État du groupe", (STATUS_LEFT_X, STATUS_TITLE_Y), self.font_big, ACCENT)
-        self._draw_text("Clique sur un équipement pour le retirer.", (STATUS_LEFT_X, STATUS_HINT_Y), self.font_small, MUTED)
-        self._draw_text("Clique sur un objet pour l'équiper.", (STATUS_RIGHT_X, STATUS_HINT_Y), self.font_small, MUTED)
-        self._draw_party_summary((STATUS_LEFT_X, STATUS_CONTENT_Y))
-        self._draw_inventory_summary((STATUS_RIGHT_X, STATUS_CONTENT_Y))
+        self._draw_text("Clique sur un personnage pour voir son équipement.", (STATUS_LEFT_X, STATUS_HINT_Y), self.font_small, MUTED)
+        self._draw_text("Clique sur un emplacement pour retirer, ou un objet pour équiper.", (STATUS_RIGHT_X, STATUS_HINT_Y), self.font_small, MUTED)
+        self._draw_status_member_list((STATUS_LEFT_X, STATUS_CONTENT_Y + 30))
+
+        member = self._selected_member()
+        member_label = member.name if member is not None else "Aucun personnage"
+        self._draw_text(f"Équipement — {member_label}", (STATUS_RIGHT_X, STATUS_CONTENT_Y), self.font, ACCENT)
         self._draw_buttons(self._status_equipped_buttons())
+        self._draw_text("Inventaire", (STATUS_RIGHT_X, STATUS_INVENTORY_TITLE_Y), self.font, ACCENT)
         self._draw_buttons(self._status_inventory_buttons())
         self._draw_status_feedback()
         self._draw_buttons(self._status_buttons())
@@ -1064,7 +1117,7 @@ class PygameApp:
 
         x, y = position
         for index, member in enumerate(self.party.members):
-            rect = pygame.Rect(x, y + index * 96, 530, 84)
+            rect = pygame.Rect(x, y + index * 96, 430, 84)
             self._draw_panel(rect, (22, 30, 48))
             sprite = self._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
             self.screen.blit(sprite, (rect.x + 14, rect.y + 15))
@@ -1076,29 +1129,27 @@ class PygameApp:
                 MUTED,
             )
 
-    def _draw_inventory_summary(self, position: tuple[int, int]) -> None:
-        # Résumé textuel de l'équipement actuel du leader.
-        # Pour déplacer cette colonne, ajuste STATUS_RIGHT_X puis STATUS_COLUMN_W.
-        if self.party is None or self.party.leader is None:
-            self._draw_text("Inventaire vide.", position, self.font, MUTED)
+    def _draw_status_member_list(self, position: tuple[int, int]) -> None:
+        # Colonne gauche de l'écran statut: un personnage par ligne, cliquable
+        # (voir _status_member_buttons) pour changer l'équipement affiché à droite.
+        if self.party is None or not self.party.members:
+            self._draw_text("Aucun groupe.", position, self.font, MUTED)
             return
 
-        leader = self.party.leader
         x, y = position
-        self._draw_text("Équipement actuel", (x, y), self.font, ACCENT)
-        slots = [
-            ("Arme", getattr(leader, "weapon", None)),
-            ("Tête", getattr(leader, "helmet", None)),
-            ("Torse", getattr(leader, "chest", None)),
-            ("Jambes", getattr(leader, "legs", None)),
-            ("Pieds", getattr(leader, "boots", None)),
-            ("Bras", getattr(leader, "arms", None)),
-        ]
-        for index, (slot, item) in enumerate(slots):
-            label = self._item_label(item)
-            row_y = y + 42 + index * 30
-            self.screen.blit(self._load_item_sprite(item, STATUS_LABEL_ICON_SIZE), (x, row_y - 2))
-            self._draw_text(f"{slot}: {label}", (x + 34, row_y), self.font_small, TEXT)
+        for index, member in enumerate(self.party.members):
+            rect = pygame.Rect(x, y + index * 96, STATUS_COLUMN_W, 84)
+            is_selected = index == self.selected_member_index
+            self._draw_panel(rect, PANEL_2 if is_selected else (22, 30, 48))
+            sprite = self._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
+            self.screen.blit(sprite, (rect.x + 14, rect.y + 15))
+            self._draw_text(member.name, (rect.x + 82, rect.y + 10), self.font, ACCENT if is_selected else TEXT)
+            self._draw_text(
+                f"HP {member.hp}/{member.max_hp}  ATQ {getattr(member, 'total_attack', member.attack)}  DEF {getattr(member, 'total_defense', member.defense)}",
+                (rect.x + 82, rect.y + 42),
+                self.font_small,
+                MUTED,
+            )
 
     def _draw_status_feedback(self) -> None:
         # Bandeau bas de page utilisé pour confirmer une action d'équipement.
@@ -1141,5 +1192,3 @@ class PygameApp:
             return
 
         self._handle_buttons(position, self._battle_action_buttons())
-
-

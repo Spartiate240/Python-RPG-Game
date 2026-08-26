@@ -1,7 +1,6 @@
 - enlever contours panneaux
 - enlever affichage "permanent" de l'état du perso
-- modifier localisation sprites
-    - replacer zones clique
 - "état du groupe"
     - enlever 2e affichage équipements
 - ajouter sprites
+- Modifier sprites/Affichage combat (lignes 998-1021)

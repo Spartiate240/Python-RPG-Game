@@ -840,7 +840,7 @@ class PygameApp:
         return surface
 
     def _main_hero_sprite(self) -> pygame.Surface:
-        # Portrait du héros utilisé sur le menu principal et les cartes de combat.
+        # Portrait du Joueur utilisé sur le menu principal et les cartes de combat.
         return self._load_sprite("data/assets/sprites/player/ff_000.png", (240, 240), Player.get_name())
 
     def _enemy_sprite_path(self) -> str | None:
@@ -888,8 +888,8 @@ class PygameApp:
     def _battle_result_buttons(self) -> list[Button]:
         # Boutons affichés seulement une fois le combat terminé.
         return [
-            Button("Continuer", pygame.Rect(900, 590, 240, 56), "continue", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Menu principal", pygame.Rect(900, 655, 240, 40), "menu", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Continuer", pygame.Rect(890, 550, 240, 56), "continue", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Menu principal", pygame.Rect(890, 605, 240, 40), "menu", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
 
     def _draw_main_menu(self) -> None:
@@ -972,7 +972,7 @@ class PygameApp:
 
         if self.battle.result is not None:
             self._draw_panel(pygame.Rect(840, 510, 340, 140), PANEL_2)
-            self._draw_centered_text(self._battle_label(), (1010, 560), self.font_big, SUCCESS if self.battle.result == "victory" else DANGER)
+            self._draw_centered_text(self._battle_label(), (1010, 470), self.font_big, SUCCESS if self.battle.result == "victory" else DANGER)
             self._draw_buttons(self._battle_result_buttons())
             return
 
@@ -1003,31 +1003,47 @@ class PygameApp:
         allies = [member for member in self.party.active_members() if member.is_alive()]
         enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
 
+        hero_sprite = pygame.transform.smoothscale(self._main_hero_sprite(), (80, 80)) # (80, 80) : taille du sprite
         for index, member in enumerate(allies):
-            self._draw_actor_card(member, pygame.Rect(90 + index * 180, 275, 160, 160), self._main_hero_sprite(), (230, 245, 255))
+            self._draw_actor_card(member, pygame.Rect(90 + index * 180, 275, 160, 160), hero_sprite, (230, 245, 255), sprite_center_y=275 + 85)
 
-        enemy_sprite = self._load_sprite(self._enemy_sprite_path(), (120, 120), "Ennemi")
+        enemy_sprite = self._load_sprite(self._enemy_sprite_path(), (80, 80), "Ennemi")
         for index, enemy in enumerate(enemies):
-            self._draw_actor_card(enemy, pygame.Rect(90 + index * 220, 455, 160, 160), enemy_sprite, (255, 220, 220))
+            self._draw_actor_card(enemy, pygame.Rect(90 + index * 220, 455, 160, 160), enemy_sprite, (255, 220, 220), sprite_center_y=455 + 75)
 
-    def _draw_actor_card(self, combatant: Combatant, rect: pygame.Rect, sprite: pygame.Surface, tint: tuple[int, int, int]) -> None:
+    def _draw_actor_card(
+        self, combatant: Combatant, rect: pygame.Rect, sprite: pygame.Surface, tint: tuple[int, int, int],
+        sprite_center_y: int | None = None, ) -> None:
+        '''
+        Dessine une carte de combat pour un allié ou un ennemi.
+        pygame.Rect : position et taille de la carte.
+        pygame.Surface : sprite du combattant.
+        tuple[int, int, int] : teinte de fond pour différencier alliés et ennemis.
+        sprite_center_y : position verticale du centre du sprite (optionnel).
+        '''
         # Carte standardisée: cadre, sprite, nom, puis barre de PV textuelle.
         self._draw_panel(rect, (23, 33, 52))
         overlay = pygame.Surface(rect.size, pygame.SRCALPHA)
         overlay.fill((*tint, 35))
         self.screen.blit(overlay, rect.topleft)
-        self.screen.blit(sprite, sprite.get_rect(center=(rect.centerx, rect.y + 62)))
+
+        if sprite_center_y is None:
+            # Comportement par défaut : le sprite se colle en haut de la carte,
+            # avec une petite marge fixe de 8px, quelle que soit sa taille.
+            sprite_center_y = rect.y + sprite.get_height() // 2 + 8
+
+        self.screen.blit(sprite, sprite.get_rect(center=(rect.centerx, sprite_center_y)))
         self._draw_centered_text(combatant.name, (rect.centerx, rect.bottom - 34), self.font_small, TEXT)
         self._draw_centered_text(f"HP {combatant.hp}/{combatant.max_hp}", (rect.centerx, rect.bottom - 14), self.font_small, SUCCESS if combatant.is_alive() else DANGER)
 
     def _draw_battle_log(self) -> None:
         # Colonne droite: historique compact des dernières actions.
         self._draw_panel(pygame.Rect(835, 180, 350, 250), PANEL_2)
-        self._draw_text("Journal", (860, 145), self.font, ACCENT)
+        self._draw_text("Journal", (970, 145), self.font, ACCENT)
         if self.battle is None:
             return
         for index, message in enumerate(self.battle.messages):
-            self._draw_text(message, (860, 185 + index * 28), self.font_small, TEXT)
+            self._draw_text(message, (885, 250 + index * 28), self.font_small, TEXT)
 
     def _draw_enemy_targets(self) -> None:
         # Sous-zone de ciblage à droite du combat, affichée seulement après clic sur "Attaquer".
@@ -1035,7 +1051,7 @@ class PygameApp:
             return
         enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
         for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 190 + index * 74, 300, 54)
+            rect = pygame.Rect(860, 220 + index * 74, 300, 54)
             button = Button(enemy.name, rect, f"target_{index}")
             self.screen.blit(self._button_surface(button), rect.topleft)
 
@@ -1050,7 +1066,7 @@ class PygameApp:
         for index, member in enumerate(self.party.members):
             rect = pygame.Rect(x, y + index * 96, 530, 84)
             self._draw_panel(rect, (22, 30, 48))
-            sprite = self._load_sprite("data/assets/sprites/player/Player_M_1.png", (54, 54), "Joueur")
+            sprite = self._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
             self.screen.blit(sprite, (rect.x + 14, rect.y + 15))
             self._draw_text(member.name, (rect.x + 82, rect.y + 10), self.font, TEXT)
             self._draw_text(

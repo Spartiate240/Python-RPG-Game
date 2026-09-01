@@ -1,8 +1,8 @@
 """
 entities/player.py
 
-Le personnage contrôlé par l'utilisateur. Son choose_action()
-délègue à core/menu.py qui affiche les options et récupère l'input.
+Le personnage contrôlé par l'utilisateur. Ses actions sont décodées
+par l'interface du jeu, sans dépendre d'un mode texte.
 """
 
 from __future__ import annotations
@@ -80,10 +80,9 @@ class Player(Ally):
             return True
         return False
 
-    # ---- Combat : décidé par l'utilisateur -------------------------
+    # ---- Combat ---------------------------------------------------
     def choose_action(self, allies: list[Combatant], enemies: list[Combatant]) -> Action:
-        from core.menu import Menu  # import local pour éviter le cycle core <-> entities
-        return Menu.ask_combat_action(self, allies, enemies)
+        raise RuntimeError("Le combat est géré par l'interface pygame.")
 
     # ---- Sauvegarde --------------------------------------------------
     def to_dict(self) -> dict:

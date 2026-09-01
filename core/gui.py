@@ -2,8 +2,7 @@
 core/gui.py
 
 Interface pygame du jeu. Elle réutilise les modèles existants
-pour la sauvegarde et le combat, tout en gardant la version terminal
-intacte via core/game.py.
+pour la sauvegarde et le combat.
 """
 
 from __future__ import annotations
@@ -773,7 +772,7 @@ class PygameApp:
 
         enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
         for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(590, 170 + index * 82, 260, 56)
+            rect = pygame.Rect(860, 200 + index * 74, 300, 54)
             if rect.collidepoint(position):
                 self.battle.player_attack(enemy)
                 self.pending_targeting = False
@@ -948,7 +947,6 @@ class PygameApp:
         self._draw_text("Python RPG", (130, 225), self.font_huge, ACCENT)
         self._draw_text("<PLACE HOLDER>", (130, 300), self.font, TEXT)
         self._draw_text("Interface pygame médiévale", (130, 335), self.font_small, MUTED)
-        self._draw_text("Mode terminal : python main.py --text", (130, 360), self.font_small, MUTED)
         self._draw_buttons(self._main_menu_buttons())
 
         # Le panneau droit sert d'illustration du jeu, comme une affiche d'auberge.
@@ -1104,7 +1102,7 @@ class PygameApp:
             return
         enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
         for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 220 + index * 74, 300, 54)
+            rect = pygame.Rect(860, 250 + index * 74, 300, 54)
             button = Button(enemy.name, rect, f"target_{index}")
             self.screen.blit(self._button_surface(button), rect.topleft)
 
@@ -1165,7 +1163,7 @@ class PygameApp:
             return
         enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
         for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 190 + index * 74, 300, 54)
+            rect = pygame.Rect(860, 220 + index * 74, 300, 54)
             if rect.collidepoint(position):
                 self.battle.player_attack(enemy)
                 self.pending_targeting = False

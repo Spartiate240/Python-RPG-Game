@@ -51,7 +51,7 @@ class Combatant(ABC):
     @abstractmethod
     def choose_action(self, allies: list["Combatant"], enemies: list["Combatant"]) -> "Action":
         """Retourne l'action choisie pour ce tour.
-        - Player : vient de l'input utilisateur (via core/menu.py)
+        - Player : décision fournie via l'interface du jeu
         - Companion / Enemy : vient d'une IA simple
         """
         raise NotImplementedError

@@ -1,10 +1,9 @@
 """
 core/game.py
 
-Point d'orchestration global : boucle de jeu, machine à états
-(menu / exploration / combat / boutique), et lien entre les
-autres modules (party, progression, sauvegarde).
-main.py ne devrait faire quasiment que : Game().run()
+Gestion de la progression du jeu et de l'état de sauvegarde.
+Le flux de jeu est piloté par l'interface pygame et les fichiers
+de sauvegarde du projet.
 """
 
 from __future__ import annotations
@@ -14,8 +13,6 @@ from pathlib import Path
 
 from party.party import Party
 from entities.player import Player
-from core.menu import Menu
-from core.fight import Fight
 
 PROGRESSION_DIR = Path("progression")
 GAME_SAVE_PATH = PROGRESSION_DIR / "Saved_progress.json"
@@ -36,71 +33,7 @@ class Game:
         self.state = GameState.MAIN_MENU
         self.party: Party | None = None
         self.location: str | None = None
-        self.menu = Menu()
         self.inventory: dict[str, int] = {"items": {}, "weapons": {}, "armors": {}}
-
-    # ---- Cycle de vie -----------------------------------------------
-    def run(self) -> None:
-        while self.state != GameState.QUIT:
-            if self.state == GameState.MAIN_MENU:
-                self._handle_main_menu()
-            elif self.state == GameState.EXPLORATION:
-                self._handle_exploration()
-            elif self.state == GameState.FIGHT:
-                self._handle_fight()
-            elif self.state == GameState.STATUS:
-                self._handle_status()
-            elif self.state == GameState.SHOP:
-                self._handle_shop()
-            elif self.state == GameState.GAME_OVER:
-                self._handle_game_over()
-
-    # ---- Handlers d'état ---------------------------------------------
-    def _handle_main_menu(self) -> None:
-        choice = self.menu.show_main_menu()
-        if choice == "new_game":
-            self.party = self._new_party()
-            self.location = None
-            self.state = GameState.EXPLORATION
-        elif choice == "load_game":
-            self.party, self.state = self._load_progress()
-        elif choice == "quit":
-            self.state = GameState.QUIT
-
-    def _handle_exploration(self) -> None:
-        choice = self.menu.show_exploration_menu(self.party)
-        if choice == "encounter":
-            self.state = GameState.FIGHT
-        elif choice == "shop":
-            self.state = GameState.SHOP
-        elif choice == "party_status":
-            self.state = GameState.STATUS
-        elif choice == "save":
-            self._save_progress()
-        elif choice == "quit":  # Sauvegarde aussi
-            self._save_progress()
-            self.state = GameState.QUIT
-
-    def _handle_fight(self) -> None:
-        from entities.enemy import Enemy
-        enemies = [Enemy.from_id("goblin")]
-        fight = Fight(self.party, enemies)
-        result = fight.run()
-        self.state = GameState.GAME_OVER if result == "defeat" else GameState.EXPLORATION
-
-    def _handle_shop(self) -> None:
-        self.menu.show_shop_menu(self.party)
-        self.state = GameState.EXPLORATION
-
-    def _handle_status(self) -> None:
-        self.menu.show_party_status(self.party)
-        if self.party and self.party.leader:
-            self.menu._show_inventory(self.party, self.inventory)
-        self.state = GameState.EXPLORATION
-
-    def _handle_game_over(self) -> None:
-        self.menu.show_game_over()
-        self.state = GameState.QUIT
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:

@@ -7,6 +7,7 @@ un rôle simple : "attacker", "healer", "support"...
 
 from __future__ import annotations
 import random
+from typing import Any
 
 from entities.ally import Ally
 from entities.combatant import Action, Combatant
@@ -23,8 +24,9 @@ class Companion(Ally):
         role: str = "attacker",
         level: int = 1,
         xp: int = 0,
+        inventory: list[Any] | None = None,
     ) -> None:
-        super().__init__(name, max_hp, attack, defense, speed, level, xp)
+        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory)
         self.role = role  # pilote l'IA de choose_action
 
     # ---- IA simple ----------------------------------------------

@@ -40,14 +40,13 @@ STATUS_CONTENT_Y = 200
 STATUS_ROW_GAP = 44
 STATUS_ITEM_ROW_GAP = 36
 STATUS_COLUMN_W = 410
-STATUS_EQUIPPED_ROWS = 6
-# Colonne droite: d'abord les emplacements équipés du personnage sélectionné,
-# puis l'inventaire équipable, en dessous.
 STATUS_EQUIPPED_Y = STATUS_CONTENT_Y + 36
-STATUS_INVENTORY_TITLE_Y = STATUS_EQUIPPED_Y + STATUS_EQUIPPED_ROWS * STATUS_ROW_GAP
+STATUS_EQUIPPED_BOX_SIZE = 56
+STATUS_EQUIPPED_GAP = 10
+STATUS_INVENTORY_TITLE_Y = STATUS_EQUIPPED_Y + STATUS_EQUIPPED_BOX_SIZE + 22
 STATUS_INVENTORY_Y = STATUS_INVENTORY_TITLE_Y + 36
 STATUS_BACK_BUTTON_RECT = pygame.Rect(1075, 610, 130, 56)
-STATUS_FEEDBACK_RECT = pygame.Rect(95, 600, 1085, 48)
+STATUS_FEEDBACK_RECT = pygame.Rect(95, 600, 950, 48)
 STATUS_LABEL_ICON_SIZE = (24, 24)
 STATUS_ITEM_ICON_SIZE = (28, 28)
 
@@ -294,6 +293,34 @@ class PygameApp:
             return item.get("id")
         return getattr(item, "id", None)
 
+    def _item_stat(self, item: object, *names: str) -> object | None:
+        if isinstance(item, dict):
+            for name in names:
+                if name in item:
+                    return item[name]
+            return None
+        for name in names:
+            value = getattr(item, name, None)
+            if value is not None:
+                return value
+        return None
+
+    def _item_details(self, item: object) -> list[str]:
+        details: list[str] = []
+        stat_labels = (
+            ("ATQ", ("attack_bonus", "damage")),
+            ("DEF", ("defense_bonus", "defense")),
+            ("PV", ("health", "max_health")),
+            ("Vitesse", ("speed",)),
+            ("Niveau requis", ("level_required", "required_level")),
+            ("Rareté", ("rarity",)),
+        )
+        for label, names in stat_labels:
+            value = self._item_stat(item, *names)
+            if value is not None:
+                details.append(f"{label}: {value}")
+        return details
+
     def _item_sprite_path(self, item: object | None) -> str | None:
         # Priorité au sprite déclaré dans le JSON, sinon on prend un fallback existant.
         if item is None:
@@ -386,14 +413,19 @@ class PygameApp:
         if player is None or item is None:
             return
 
+        item_id = self._item_id(item)
+        if item_id is None:
+            return
+
+        if item in player.inventory:
+            player.inventory.remove(item)
+
         slot = self._item_slot(item)
 
         if self._is_weapon(item):
             if player.weapon is not None:
                 player.inventory.append(player.weapon)
             player.equip_weapon(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_weapon(item)
             self.status_feedback = f"{self._item_label(item)} équipé en arme."
             return
@@ -402,42 +434,52 @@ class PygameApp:
             if player.helmet is not None:
                 player.inventory.append(player.helmet)
             player.equip_helmet(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_helmet(item)
         elif slot == "chest":
             if player.chest is not None:
                 player.inventory.append(player.chest)
             player.equip_chest(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_chest(item)
         elif slot == "legs":
             if player.legs is not None:
                 player.inventory.append(player.legs)
             player.equip_legs(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_legs(item)
         elif slot == "boots":
             if player.boots is not None:
                 player.inventory.append(player.boots)
             player.equip_boots(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_boots(item)
         elif slot == "arms":
             if player.arms is not None:
                 player.inventory.append(player.arms)
             player.equip_arms(None)
-            if item in player.inventory:
-                player.inventory.remove(item)
             player.equip_arms(item)
         else:
             self.status_feedback = "Cet objet ne peut pas être équipé."
             return
 
         self.status_feedback = f"{self._item_label(item)} équipé."
+
+    def _consume_stock_item(self, item: object) -> bool:
+        item_id = self._item_id(item)
+        if item_id is None:
+            return False
+        category = "weapons" if self._is_weapon(item) else "armors" if self._item_slot(item) else "items"
+        entries = self.inventory.get(category, {})
+        quantity = int(entries.get(item_id, 0))
+        if quantity <= 0:
+            return False
+        if quantity == 1:
+            del entries[item_id]
+        else:
+            entries[item_id] = quantity - 1
+        return True
+
+    def _is_equippable(self, item: object) -> bool:
+        return self._is_weapon(item) or self._item_slot(item) in {
+            "helmet", "chest", "legs", "boots", "arms"
+        }
 
     def _unequip_slot(self, slot: str) -> None:
         # Cliquer sur un slot équipé le remet simplement dans l'inventaire
@@ -508,18 +550,40 @@ class PygameApp:
 
         buttons: list[Button] = []
         for index, (slot, label, item) in enumerate(slots):
-            text = f"{label}: {self._item_label(item)}"
-            row_y = STATUS_EQUIPPED_Y + index * STATUS_ROW_GAP
+            box_x = STATUS_RIGHT_X + index * (STATUS_EQUIPPED_BOX_SIZE + STATUS_EQUIPPED_GAP)
             buttons.append(
                 Button(
-                    text,
-                    pygame.Rect(STATUS_RIGHT_X, row_y, STATUS_COLUMN_W, 36),
+                    label if item is None else "",
+                    pygame.Rect(box_x, STATUS_EQUIPPED_Y, STATUS_EQUIPPED_BOX_SIZE, STATUS_EQUIPPED_BOX_SIZE),
                     f"unequip:{slot}",
-                    payload={"slot": slot, "item": item, "kind": "equipped"},
+                    payload={"slot": slot, "item": item, "kind": "equipped", "slot_label": label},
                     enabled=item is not None,
                 )
             )
         return buttons
+
+    def _draw_status_equipped_tooltip(self) -> None:
+        mouse_position = pygame.mouse.get_pos()
+        hovered = next(
+            (button for button in self._status_equipped_buttons() if button.enabled and button.rect.collidepoint(mouse_position)),
+            None,
+        )
+        if hovered is None:
+            return
+
+        item = hovered.payload.get("item")
+        if item is None:
+            return
+
+        lines = [self._item_label(item), *self._item_details(item)]
+        tooltip_width = 245
+        tooltip_height = 18 + len(lines) * 24
+        tooltip_x = min(mouse_position[0] + 16, SCREEN_SIZE[0] - tooltip_width - 20)
+        tooltip_y = min(mouse_position[1] + 16, SCREEN_SIZE[1] - tooltip_height - 20)
+        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, tooltip_width, tooltip_height)
+        self._draw_panel(tooltip_rect, (44, 29, 18))
+        for index, line in enumerate(lines):
+            self._draw_text(line, (tooltip_rect.x + 12, tooltip_rect.y + 8 + index * 24), self.font_small, ACCENT if index == 0 else TEXT)
 
     def _status_inventory_buttons(self) -> list[Button]:
         # Colonne droite de l'écran statut, sous les emplacements équipés:
@@ -593,7 +657,15 @@ class PygameApp:
 
         for button in self._status_inventory_buttons():
             if button.rect.collidepoint(position):
-                self._equip_item(button.payload.get("item"))
+                item = button.payload.get("item")
+                if button.payload.get("kind") == "stock" and item is not None:
+                    if not self._is_equippable(item):
+                        self.status_feedback = "Cet objet ne peut pas être équipé."
+                        return
+                    if not self._consume_stock_item(item):
+                        self.status_feedback = "Cet objet n'est plus disponible."
+                        return
+                self._equip_item(item)
                 return
 
     def _load_ui_manifest(self, theme: str) -> list[dict[str, Any]]:
@@ -670,7 +742,17 @@ class PygameApp:
         surface = self._ui_panel_surface((width, height), theme, sprite_id, (54, 35, 20))
         outline_color = ACCENT if button.enabled else MUTED
         pygame.draw.rect(surface, outline_color, surface.get_rect(), width=2, border_radius=14)
-    
+
+        if button.payload.get("kind") == "equipped":
+            item = button.payload.get("item")
+            if item is not None:
+                icon_size = (width - 12, height - 12)
+                icon = self._load_item_sprite(item, icon_size)
+                surface.blit(icon, icon.get_rect(center=surface.get_rect().center))
+            else:
+                label = self.font_small.render(button.payload.get("slot_label", ""), True, MUTED)
+                surface.blit(label, label.get_rect(center=surface.get_rect().center))
+            return surface
 
         item = button.payload.get("item")
         if item is not None and button.action.startswith(("equip", "unequip")):
@@ -991,6 +1073,7 @@ class PygameApp:
         self._draw_text("Inventaire", (STATUS_RIGHT_X, STATUS_INVENTORY_TITLE_Y), self.font, ACCENT)
         self._draw_buttons(self._status_inventory_buttons())
         self._draw_status_feedback()
+        self._draw_status_equipped_tooltip()
         self._draw_buttons(self._status_buttons())
 
     def _draw_shop(self) -> None:

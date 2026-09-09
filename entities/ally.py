@@ -26,10 +26,12 @@ class Ally(Combatant):
         speed: int,
         level: int = 1,
         xp: int = 0,
+        inventory: list[Any] | None = None,
     ) -> None:
         super().__init__(name, max_hp, attack, defense, speed)
         self.level = level
         self.xp = xp
+        self.inventory: list[Any] = inventory or []
 
         self.weapon: Any | None = None
         self.helmet: Any | None = None

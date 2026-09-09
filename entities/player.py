@@ -60,11 +60,10 @@ class Player(Ally):
         level: int = 1,
         xp: int = 0,
         gold: int = 0,
-        inventory: list["Item"] = None
+        inventory: list["Item"] | None = None,
     ) -> None:
-        super().__init__(name, max_hp, attack, defense, speed, level, xp)
+        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory)
         self.gold = gold
-        self.inventory: list["Item"] = inventory or []
 
     # ---- Inventaire / économie -------------------------------------
     def add_item(self, item: "Item") -> None:
@@ -103,7 +102,10 @@ class Player(Ally):
             "legs": _item_id(self.legs),
             "boots": _item_id(self.boots),
             "arms": _item_id(self.arms),
-            "inventory": [item_id for item in (_item_id(item) for item in self.inventory) if item_id is not None]
+            "inventory": [
+                item_id for item_id in (_item_id(item) for item in self.inventory)
+                if item_id is not None
+            ]
         }
 
     @classmethod

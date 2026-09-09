@@ -12,7 +12,7 @@ est le héros ou un compagnon.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from entities.player import Player
+from entities.player import Player, _item_id, _resolve_item
 from entities.companion import Companion
 
 if TYPE_CHECKING:
@@ -117,6 +117,16 @@ def _companion_to_dict(companion: Companion) -> dict:
         "role": companion.role,
         "level": companion.level,
         "xp": companion.xp,
+        "weapon": _item_id(companion.weapon),
+        "helmet": _item_id(companion.helmet),
+        "chest": _item_id(companion.chest),
+        "legs": _item_id(companion.legs),
+        "boots": _item_id(companion.boots),
+        "arms": _item_id(companion.arms),
+        "inventory": [
+            item_id for item_id in (_item_id(item) for item in companion.inventory)
+            if item_id is not None
+        ],
     }
 
 
@@ -132,4 +142,14 @@ def _companion_from_dict(data: dict) -> Companion:
         xp=data.get("xp", 0),
     )
     companion.hp = data["hp"]
+    companion.weapon = _resolve_item(data.get("weapon"))
+    companion.helmet = _resolve_item(data.get("helmet"))
+    companion.chest = _resolve_item(data.get("chest"))
+    companion.legs = _resolve_item(data.get("legs"))
+    companion.boots = _resolve_item(data.get("boots"))
+    companion.arms = _resolve_item(data.get("arms"))
+    companion.inventory = [
+        item for item in (_resolve_item(item_id) for item_id in data.get("inventory", []))
+        if item is not None
+    ]
     return companion

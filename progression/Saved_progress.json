@@ -17,6 +17,24 @@
       "legs": null,
       "boots": null,
       "arms": null
+    },
+        {
+      "type": "Comapnion",
+      "name": "Hald",
+      "hp": 98,
+      "max_hp": 50,
+      "attack": 30,
+      "defense": 8,
+      "speed": 10,
+      "level": 1,
+      "xp": 4,
+      "gold": 0,
+      "weapon": null,
+      "helmet": null,
+      "chest": null,
+      "legs": null,
+      "boots": null,
+      "arms": null
     }
   ],
   "active_indexes": [

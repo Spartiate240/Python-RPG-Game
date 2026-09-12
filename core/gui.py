@@ -256,7 +256,6 @@ class PygameApp:
         self.location: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
-        self.pending_targeting = False
         # Message court pour confirmer une action d'équipement ou de retrait.
         self.status_feedback = ""
         # Personnage actuellement sélectionné dans l'écran statut (index dans party.members).
@@ -989,13 +988,10 @@ class PygameApp:
             else:
                 self.state = "game_over"
             self.battle = None
-        elif action == "attack":
-            self.pending_targeting = True
         elif action == "flee":
             if self.battle is not None:
                 self.battle.flee()
             self.state = "exploration"
-            self.pending_targeting = False
 
     def _handle_battle_click(self, position: tuple[int, int]) -> None:
         if self.battle is None:
@@ -1006,19 +1002,14 @@ class PygameApp:
         actor = self.battle.current_actor
         if actor is None or not isinstance(actor, Player):
             return
-        if not self.pending_targeting:
-            self._handle_buttons(position, self._battle_action_buttons())
-            return
-
-        enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
-        for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 200 + index * 74, 300, 54)
+        for enemy, rect in self._battle_enemy_rects():
             if rect.collidepoint(position):
                 self.battle.player_attack(enemy)
-                self.pending_targeting = False
                 if self.battle.result is not None:
                     self.state = "battle"
                 return
+
+        self._handle_buttons(position, self._battle_action_buttons())
 
     def _new_game(self) -> None:
         self.party = self.core._new_party()
@@ -1034,7 +1025,6 @@ class PygameApp:
         self.core.progression = self.progression
         self._update_titles()
         self.battle = None
-        self.pending_targeting = False
         self.selected_member_index = 0
         self.state = "exploration"
 
@@ -1045,7 +1035,6 @@ class PygameApp:
         self.inventory = self.core.inventory
         self._merge_member_inventories()
         self.battle = None
-        self.pending_targeting = False
         self.selected_member_index = 0
         self.selected_merchant_id = None
         self.state = "game_over" if loaded_state == GameState.GAME_OVER else "exploration"
@@ -1069,7 +1058,6 @@ class PygameApp:
         enemy = Enemy.from_id("goblin")
         enemy_meta = [self.enemy_catalog.get("goblin", {})]
         self.battle = Battle(self.party, [enemy], enemy_meta)
-        self.pending_targeting = False
         self.state = "battle"
         self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0))
         if self.battle.result is not None:
@@ -1317,10 +1305,9 @@ class PygameApp:
         return [Button("Menu principal", pygame.Rect(510, 385, 260, 56), "menu")]
 
     def _battle_action_buttons(self) -> list[Button]:
-        # Barre d'actions du joueur en bas à droite pendant le combat.
+        # La cible est directement la carte ennemie; seule la fuite reste une action séparée.
         return [
-            Button("Attaquer", pygame.Rect(750, 510, 320, 58), "attack", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Fuir", pygame.Rect(750, 580, 320, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Fuir", pygame.Rect(900, 580, 240, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
 
     def _battle_result_buttons(self) -> list[Button]:
@@ -1466,13 +1453,12 @@ class PygameApp:
             self.state = "exploration"
             return
 
-        # Combat: bandeau titre en haut, cards des combattants au centre,
-        # journal à droite, actions du joueur en bas à droite.
+        # Combat: bandeau titre en haut, cartes cliquables au centre,
+        # actions du joueur en bas à droite.
         self._draw_panel(pygame.Rect(50, 60, 1180, 620), PANEL)
         self._draw_text("Combat", (95, 100), self.font_big, ACCENT)
         self._draw_text(self._battle_label(), (95, 150), self.font, MUTED)
         self._draw_battle_cards()
-        self._draw_battle_log()
 
         if self.battle.result is not None:
             self._draw_panel(pygame.Rect(840, 510, 340, 140), PANEL_2)
@@ -1480,11 +1466,9 @@ class PygameApp:
             self._draw_buttons(self._battle_result_buttons())
             return
 
-        if self.pending_targeting:
-            self._draw_centered_text("Choisis une cible", (1010, 525), self.font_small, MUTED)
-            self._draw_enemy_targets()
-        else:
-            self._draw_buttons(self._battle_action_buttons())
+        if isinstance(self.battle.current_actor, Player):
+            self._draw_centered_text("Clique sur un ennemi pour attaquer", (940, 525), self.font_small, MUTED)
+        self._draw_buttons(self._battle_action_buttons())
 
     def _battle_label(self) -> str:
         # Texte d'état affiché sous le titre du combat.
@@ -1505,15 +1489,24 @@ class PygameApp:
             return
 
         allies = [member for member in self.party.active_members() if member.is_alive()]
-        enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
-
         hero_sprite = pygame.transform.smoothscale(self._main_hero_sprite(), (80, 80)) # (80, 80) : taille du sprite
         for index, member in enumerate(allies):
             self._draw_actor_card(member, pygame.Rect(90 + index * 180, 275, 160, 160), hero_sprite, (230, 245, 255), sprite_center_y=275 + 85)
 
         enemy_sprite = self._load_sprite(self._enemy_sprite_path(), (80, 80), "Ennemi")
-        for index, enemy in enumerate(enemies):
-            self._draw_actor_card(enemy, pygame.Rect(90 + index * 220, 455, 160, 160), enemy_sprite, (255, 220, 220), sprite_center_y=455 + 75)
+        for enemy, rect in self._battle_enemy_rects():
+            self._draw_actor_card(enemy, rect, enemy_sprite, (255, 220, 220), sprite_center_y=rect.y + 75)
+            if isinstance(self.battle.current_actor, Player) and rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(self.screen, ACCENT, rect, width=4, border_radius=18)
+
+    def _battle_enemy_rects(self) -> list[tuple[Enemy, pygame.Rect]]:
+        if self.battle is None:
+            return []
+        enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
+        return [
+            (enemy, pygame.Rect(90 + index * 220, 455, 160, 160))
+            for index, enemy in enumerate(enemies)
+        ]
 
     def _draw_actor_card(
         self, combatant: Combatant, rect: pygame.Rect, sprite: pygame.Surface, tint: tuple[int, int, int],
@@ -1539,25 +1532,6 @@ class PygameApp:
         self.screen.blit(sprite, sprite.get_rect(center=(rect.centerx, sprite_center_y)))
         self._draw_centered_text(combatant.name, (rect.centerx, rect.bottom - 34), self.font_small, TEXT)
         self._draw_centered_text(f"HP {combatant.hp}/{combatant.max_hp}", (rect.centerx, rect.bottom - 14), self.font_small, SUCCESS if combatant.is_alive() else DANGER)
-
-    def _draw_battle_log(self) -> None:
-        # Colonne droite: historique compact des dernières actions.
-        self._draw_panel(pygame.Rect(835, 180, 350, 250), PANEL_2)
-        self._draw_text("Journal", (970, 145), self.font, ACCENT)
-        if self.battle is None:
-            return
-        for index, message in enumerate(self.battle.messages):
-            self._draw_text(message, (885, 250 + index * 28), self.font_small, TEXT)
-
-    def _draw_enemy_targets(self) -> None:
-        # Sous-zone de ciblage à droite du combat, affichée seulement après clic sur "Attaquer".
-        if self.battle is None:
-            return
-        enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
-        for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 250 + index * 74, 300, 54)
-            button = Button(enemy.name, rect, f"target_{index}")
-            self.screen.blit(self._button_surface(button), rect.topleft)
 
     def _draw_party_summary(self, position: tuple[int, int]) -> None:
         # Sous-écran réutilisé dans exploration et statut.
@@ -1610,24 +1584,10 @@ class PygameApp:
         self._draw_panel(STATUS_FEEDBACK_RECT, (44, 29, 18))
         self._draw_text(self.status_feedback, (115, 614), self.font_small, TEXT)
 
-    def _handle_battle_target_click(self, position: tuple[int, int]) -> None:
-        # Gère le clic sur l'une des cibles affichées à droite du combat.
-        if self.battle is None:
-            return
-        enemies = [enemy for enemy in self.battle.enemies if enemy.is_alive()]
-        for index, enemy in enumerate(enemies):
-            rect = pygame.Rect(860, 220 + index * 74, 300, 54)
-            if rect.collidepoint(position):
-                self.battle.player_attack(enemy)
-                self.pending_targeting = False
-                if self.battle.result is None:
-                    self.state = "battle"
-                return
-
     def _handle_battle_click(self, position: tuple[int, int]) -> None:
         # Gestion des clics spécifiques à l'écran combat.
         # 1) si le combat est fini, on clique sur les boutons de fin;
-        # 2) sinon, soit on choisit une action, soit une cible.
+        # 2) sinon, on clique sur une cible ou sur l'action de fuite.
         if self.battle is None:
             return
         if self.battle.result is not None:
@@ -1638,8 +1598,9 @@ class PygameApp:
         if actor is None or not isinstance(actor, Player):
             return
 
-        if self.pending_targeting:
-            self._handle_battle_target_click(position)
-            return
+        for enemy, rect in self._battle_enemy_rects():
+            if rect.collidepoint(position):
+                self.battle.player_attack(enemy)
+                return
 
         self._handle_buttons(position, self._battle_action_buttons())

@@ -33,7 +33,8 @@ class Ally(Combatant):
         self.xp = xp
         self.inventory: list[Any] = inventory or []
 
-        self.weapon: Any | None = None
+        self.weapon_primary: Any | None = None
+        self.weapon_secondary: Any | None = None
         self.helmet: Any | None = None
         self.chest: Any | None = None
         self.legs: Any | None = None
@@ -43,7 +44,19 @@ class Ally(Combatant):
 
     # ---- Équipement ------------------------------------------------
     def equip_weapon(self, weapon: Any) -> None:
-        self.weapon = weapon
+        self.weapon_primary = weapon
+
+    @property
+    def weapon(self) -> Any | None:
+        """Compatibilité avec le premier emplacement d'arme historique."""
+        return self.weapon_primary
+
+    @weapon.setter
+    def weapon(self, value: Any | None) -> None:
+        self.weapon_primary = value
+
+    def equip_weapon_secondary(self, weapon: Any | None) -> None:
+        self.weapon_secondary = weapon
 
     def equip_helmet(self, helmet: Any) -> None:
         self.helmet = helmet
@@ -73,8 +86,11 @@ class Ally(Combatant):
 
     @property
     def total_attack(self) -> int:
-        bonus = _item_value(self.weapon, ("attack_bonus", "damage"))
-        return self.attack + bonus
+        bonuses = (
+            _item_value(self.weapon_primary, ("attack_bonus", "damage")),
+            _item_value(self.weapon_secondary, ("attack_bonus", "damage")),
+        )
+        return self.attack + sum(bonuses)
 
     @property
     def total_defense(self) -> int:

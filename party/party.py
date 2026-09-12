@@ -117,7 +117,9 @@ def _companion_to_dict(companion: Companion) -> dict:
         "role": companion.role,
         "level": companion.level,
         "xp": companion.xp,
-        "weapon": _item_id(companion.weapon),
+        "weapon": _item_id(companion.weapon_primary),
+        "weapon_primary": _item_id(companion.weapon_primary),
+        "weapon_secondary": _item_id(companion.weapon_secondary),
         "helmet": _item_id(companion.helmet),
         "chest": _item_id(companion.chest),
         "legs": _item_id(companion.legs),
@@ -142,7 +144,8 @@ def _companion_from_dict(data: dict) -> Companion:
         xp=data.get("xp", 0),
     )
     companion.hp = data["hp"]
-    companion.weapon = _resolve_item(data.get("weapon"))
+    companion.weapon_primary = _resolve_item(data.get("weapon_primary", data.get("weapon")))
+    companion.weapon_secondary = _resolve_item(data.get("weapon_secondary"))
     companion.helmet = _resolve_item(data.get("helmet"))
     companion.chest = _resolve_item(data.get("chest"))
     companion.legs = _resolve_item(data.get("legs"))

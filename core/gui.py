@@ -50,6 +50,15 @@ STATUS_FEEDBACK_RECT = pygame.Rect(95, 600, 950, 48)
 STATUS_LABEL_ICON_SIZE = (24, 24)
 STATUS_ITEM_ICON_SIZE = (28, 28)
 
+
+SHOP_BACK_BUTTON_RECT = pygame.Rect(1075, 610, 130, 56)
+QUESTS_PANEL_RECT = pygame.Rect(70, 55, 1140, 610)
+QUESTS_BOARD_RECT = pygame.Rect(105, 125, 1070, 470)
+QUESTS_BACK_BUTTON_RECT = pygame.Rect(1035, 610, 150, 48)
+TITLES_PANEL_RECT = pygame.Rect(70, 55, 1140, 610)
+TITLES_BACK_BUTTON_RECT = pygame.Rect(1035, 610, 150, 48)
+
+
 # LAYOUT SPRITE DU HÉROS (menu principal)
 # Ce sont les DEUX SEULES valeurs à changer pour déplacer le sprite du héros
 # affiché sur l'écran titre. MAIN_HERO_SPRITE_POS = coin haut-gauche du sprite.
@@ -256,6 +265,13 @@ class PygameApp:
         self.item_catalog = self._load_catalog(DATA_DIR / "items.json")
         self.weapon_catalog = self._load_catalog(DATA_DIR / "weapons.json")
         self.armor_catalog = self._load_catalog(DATA_DIR / "armor.json")
+        self.quest_catalog = self._load_catalog(DATA_DIR / "quests.json")
+        self.title_catalog = self._load_catalog(DATA_DIR / "titles.json")
+        self.progression: dict[str, Any] = {
+            "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
+            "quests": {"active": [], "completed": [], "claimed": []},
+            "titles": {},
+        }
         self.running = True
 
     def _load_catalog(self, path: Path) -> dict[str, dict]:
@@ -407,8 +423,7 @@ class PygameApp:
         return self.party.members[self.selected_member_index]
 
     def _equip_item(self, item: object | None) -> None:
-        # Même règle que dans le menu texte: on retire l'objet en place,
-        # on enlève le nouvel objet de l'inventaire, puis on l'équipe.
+        # Remplace l'équipement du slot et remet l'ancien objet dans le stock commun.
         player = self._selected_member()
         if player is None or item is None:
             return
@@ -423,36 +438,42 @@ class PygameApp:
         slot = self._item_slot(item)
 
         if self._is_weapon(item):
-            if player.weapon is not None:
-                player.inventory.append(player.weapon)
-            player.equip_weapon(None)
-            player.equip_weapon(item)
-            self.status_feedback = f"{self._item_label(item)} équipé en arme."
+            if player.weapon_primary is None:
+                player.equip_weapon(item)
+                slot_label = "arme principale"
+            elif player.weapon_secondary is None:
+                player.equip_weapon_secondary(item)
+                slot_label = "arme secondaire"
+            else:
+                self._add_shared_item(player.weapon_primary)
+                player.equip_weapon(item)
+                slot_label = "arme principale"
+            self.status_feedback = f"{self._item_label(item)} équipé en {slot_label}."
             return
 
         if slot == "helmet":
             if player.helmet is not None:
-                player.inventory.append(player.helmet)
+                self._add_shared_item(player.helmet)
             player.equip_helmet(None)
             player.equip_helmet(item)
         elif slot == "chest":
             if player.chest is not None:
-                player.inventory.append(player.chest)
+                self._add_shared_item(player.chest)
             player.equip_chest(None)
             player.equip_chest(item)
         elif slot == "legs":
             if player.legs is not None:
-                player.inventory.append(player.legs)
+                self._add_shared_item(player.legs)
             player.equip_legs(None)
             player.equip_legs(item)
         elif slot == "boots":
             if player.boots is not None:
-                player.inventory.append(player.boots)
+                self._add_shared_item(player.boots)
             player.equip_boots(None)
             player.equip_boots(item)
         elif slot == "arms":
             if player.arms is not None:
-                player.inventory.append(player.arms)
+                self._add_shared_item(player.arms)
             player.equip_arms(None)
             player.equip_arms(item)
         else:
@@ -476,6 +497,25 @@ class PygameApp:
             entries[item_id] = quantity - 1
         return True
 
+    def _shared_category(self, item: object) -> str:
+        return "weapons" if self._is_weapon(item) else "armors" if self._item_slot(item) else "items"
+
+    def _add_shared_item(self, item: object | None) -> None:
+        item_id = self._item_id(item)
+        if item_id is None:
+            return
+        category = self._shared_category(item)
+        entries = self.inventory.setdefault(category, {})
+        entries[item_id] = int(entries.get(item_id, 0)) + 1
+
+    def _merge_member_inventories(self) -> None:
+        if self.party is None:
+            return
+        for member in self.party.members:
+            for item in member.inventory:
+                self._add_shared_item(item)
+            member.inventory.clear()
+
     def _is_equippable(self, item: object) -> bool:
         return self._is_weapon(item) or self._item_slot(item) in {
             "helmet", "chest", "legs", "boots", "arms"
@@ -488,28 +528,32 @@ class PygameApp:
         if player is None:
             return
 
-        if slot == "weapon" and player.weapon is not None:
-            player.inventory.append(player.weapon)
+        if slot == "weapon_primary" and player.weapon_primary is not None:
+            self._add_shared_item(player.weapon_primary)
             player.equip_weapon(None)
-            self.status_feedback = "Arme retirée."
+            self.status_feedback = "Arme principale retirée."
+        elif slot == "weapon_secondary" and player.weapon_secondary is not None:
+            self._add_shared_item(player.weapon_secondary)
+            player.equip_weapon_secondary(None)
+            self.status_feedback = "Arme secondaire retirée."
         elif slot == "helmet" and player.helmet is not None:
-            player.inventory.append(player.helmet)
+            self._add_shared_item(player.helmet)
             player.equip_helmet(None)
             self.status_feedback = "Tête retirée."
         elif slot == "chest" and player.chest is not None:
-            player.inventory.append(player.chest)
+            self._add_shared_item(player.chest)
             player.equip_chest(None)
             self.status_feedback = "Torse retiré."
         elif slot == "legs" and player.legs is not None:
-            player.inventory.append(player.legs)
+            self._add_shared_item(player.legs)
             player.equip_legs(None)
             self.status_feedback = "Jambes retirées."
         elif slot == "boots" and player.boots is not None:
-            player.inventory.append(player.boots)
+            self._add_shared_item(player.boots)
             player.equip_boots(None)
             self.status_feedback = "Bottes retirées."
         elif slot == "arms" and player.arms is not None:
-            player.inventory.append(player.arms)
+            self._add_shared_item(player.arms)
             player.equip_arms(None)
             self.status_feedback = "Bras retirés."
 
@@ -540,7 +584,8 @@ class PygameApp:
             return []
 
         slots = [
-            ("weapon", "Arme", player.weapon),
+            ("weapon_primary", "Arme 1", player.weapon_primary),
+            ("weapon_secondary", "Arme 2", player.weapon_secondary),
             ("helmet", "Tête", player.helmet),
             ("chest", "Torse", player.chest),
             ("legs", "Jambes", player.legs),
@@ -586,32 +631,13 @@ class PygameApp:
             self._draw_text(line, (tooltip_rect.x + 12, tooltip_rect.y + 8 + index * 24), self.font_small, ACCENT if index == 0 else TEXT)
 
     def _status_inventory_buttons(self) -> list[Button]:
-        # Colonne droite de l'écran statut, sous les emplacements équipés:
-        # on y fusionne l'inventaire du personnage sélectionné et le stock
-        # sauvegardé, pour que les armures et armes non portées restent visibles.
+        # Colonne droite de l'écran statut: l'inventaire commun du groupe.
         player = self._selected_member()
         if player is None:
             return []
 
         buttons: list[Button] = []
         row_index = 0
-
-        for item in player.inventory:
-            label = self._item_label(item)
-            slot = self._item_slot(item)
-            suffix = f" [{slot}]" if slot else ""
-            row_y = STATUS_INVENTORY_Y + row_index * STATUS_ITEM_ROW_GAP
-            buttons.append(
-                Button(
-                    f"{label}{suffix}",
-                    pygame.Rect(STATUS_RIGHT_X, row_y, STATUS_COLUMN_W, 32),
-                    f"equip:{row_index}",
-                    payload={"item": item, "index": row_index, "kind": "inventory"},
-                    sprite_theme = "freefantasy",
-                    sprite_id = "ff_001"
-                )
-            )
-            row_index += 1
 
         for category in ("weapons", "armors", "items"):
             entries = self.inventory.get(category, {})
@@ -625,7 +651,7 @@ class PygameApp:
                         f"{self._item_label(item)} x{quantity}",
                         pygame.Rect(STATUS_RIGHT_X, row_y, STATUS_COLUMN_W, 32),
                         f"equip:{item_id}",
-                        payload={"item": item, "stock_id": item_id, "category": category, "quantity": quantity, "kind": "stock"},
+                        payload={"item": item, "stock_id": item_id, "category": category, "quantity": quantity, "kind": "shared_inventory"},
                     )
                 )
                 row_index += 1
@@ -658,7 +684,7 @@ class PygameApp:
         for button in self._status_inventory_buttons():
             if button.rect.collidepoint(position):
                 item = button.payload.get("item")
-                if button.payload.get("kind") == "stock" and item is not None:
+                if button.payload.get("kind") == "shared_inventory" and item is not None:
                     if not self._is_equippable(item):
                         self.status_feedback = "Cet objet ne peut pas être équipé."
                         return
@@ -796,6 +822,10 @@ class PygameApp:
             self._handle_battle_click(position)
         elif self.state == "shop":
             self._handle_buttons(position, self._shop_buttons())
+        elif self.state == "quests":
+            self._handle_buttons(position, self._quest_buttons())
+        elif self.state == "titles":
+            self._handle_buttons(position, self._title_buttons())
         elif self.state == "game_over":
             self._handle_buttons(position, self._game_over_buttons())
 
@@ -815,6 +845,16 @@ class PygameApp:
             self._start_battle()
         elif action == "shop":
             self.state = "shop"
+        elif action == "quests":
+            self.state = "quests"
+        elif action == "titles":
+            self.state = "titles"
+        elif action.startswith("accept_quest:"):
+            quest_id = action.split(":", 1)[1]
+            if quest_id not in self.progression["quests"]["active"]:
+                self.progression["quests"]["active"].append(quest_id)
+        elif action.startswith("claim_quest:"):
+            self._claim_quest(action.split(":", 1)[1])
         elif action == "status":
             self.state = "status"
         elif action == "back":
@@ -827,6 +867,9 @@ class PygameApp:
             self.battle = None
         elif action == "continue":
             if self.battle is not None and self.battle.result == "victory":
+                self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0)) + 1
+                self.progression["stats"]["gold_earned"] = int(self.progression["stats"].get("gold_earned", 0)) + sum(enemy.gold_reward for enemy in self.battle.enemies)
+                self._update_titles()
                 self.state = "exploration"
             else:
                 self.state = "game_over"
@@ -866,6 +909,13 @@ class PygameApp:
         self.party = self.core._new_party()
         self.location = None
         self.inventory = {"items": {}, "weapons": {}, "armors": {}}
+        self.progression = {
+            "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
+            "quests": {"active": [], "completed": [], "claimed": []},
+            "titles": {},
+        }
+        self.core.progression = self.progression
+        self._update_titles()
         self.battle = None
         self.pending_targeting = False
         self.selected_member_index = 0
@@ -876,17 +926,22 @@ class PygameApp:
         self.party = self.core.party
         self.location = self.core.location
         self.inventory = self.core.inventory
+        self._merge_member_inventories()
         self.battle = None
         self.pending_targeting = False
         self.selected_member_index = 0
         self.state = "game_over" if loaded_state == GameState.GAME_OVER else "exploration"
+        self.progression = self.core.progression
+        self._update_titles()
 
     def _save_game(self) -> None:
         if self.party is None:
             return
+        self._merge_member_inventories()
         self.core.party = self.party
         self.core.location = self.location
         self.core.inventory = self.inventory
+        self.core.progression = self.progression
         self.core.state = GameState.GAME_OVER if self.state == "game_over" else GameState.EXPLORATION
         self.core._save_progress()
 
@@ -898,6 +953,7 @@ class PygameApp:
         self.battle = Battle(self.party, [enemy], enemy_meta)
         self.pending_targeting = False
         self.state = "battle"
+        self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0))
         if self.battle.result is not None:
             return
 
@@ -911,6 +967,10 @@ class PygameApp:
             self._draw_status()
         elif self.state == "shop":
             self._draw_shop()
+        elif self.state == "quests":
+            self._draw_quests()
+        elif self.state == "titles":
+            self._draw_titles()
         elif self.state == "battle":
             self._draw_battle()
         elif self.state == "game_over":
@@ -989,11 +1049,13 @@ class PygameApp:
     def _exploration_buttons(self) -> list[Button]:
         # Colonne gauche de l'écran exploration: actions de progression.
         return [
-            Button("Rencontre", pygame.Rect(800, 295, 320, 58), "encounter",sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Boutique", pygame.Rect(800, 365, 320, 58), "shop", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("État du groupe", pygame.Rect(800, 435, 320, 58), "status", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Sauvegarder", pygame.Rect(800, 505, 320, 58), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Sauvegarder et quitter", pygame.Rect(800, 575, 320, 58), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Rencontre", pygame.Rect(800, 255, 320, 48), "encounter", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Boutique", pygame.Rect(800, 309, 320, 48), "shop", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Tableau des quêtes", pygame.Rect(800, 363, 320, 48), "quests", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Titres", pygame.Rect(800, 417, 320, 48), "titles", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("État du groupe", pygame.Rect(800, 471, 320, 48), "status", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Sauvegarder", pygame.Rect(800, 525, 320, 48), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Sauvegarder et quitter", pygame.Rect(800, 579, 320, 48), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
 
     def _status_buttons(self) -> list[Button]:
@@ -1002,7 +1064,89 @@ class PygameApp:
 
     def _shop_buttons(self) -> list[Button]:
         # Bouton de retour de l'écran boutique.
-        return [Button("Retour", pygame.Rect(900, 610, 220, 56), "back")]
+        return [Button("Retour", SHOP_BACK_BUTTON_RECT, "back")]
+
+    def _quest_buttons(self) -> list[Button]:
+        buttons = [Button("Retour", QUESTS_BACK_BUTTON_RECT, "back")]
+        for index, quest in enumerate(self.quest_catalog.values()):
+            quest_id = str(quest["id"])
+            status = self._quest_status(quest_id)
+            if status == "available":
+                action = f"accept_quest:{quest_id}"
+                label = "Accepter"
+            elif status == "claimable":
+                action = f"claim_quest:{quest_id}"
+                label = "Réclamer"
+            else:
+                action = "noop"
+                label = "Terminé" if status == "claimed" else "En cours"
+            buttons.append(Button(label, pygame.Rect(1000, 165 + index * 112, 145, 42), action, enabled=action != "noop"))
+        return buttons
+
+    def _title_buttons(self) -> list[Button]:
+        return [Button("Retour", TITLES_BACK_BUTTON_RECT, "back")]
+
+    def _condition_progress(self, condition: dict[str, Any]) -> tuple[int, int]:
+        condition_type = str(condition.get("type", ""))
+        target = int(condition.get("target", 1))
+        stats = self.progression.setdefault("stats", {})
+        if condition_type == "victories":
+            current = int(stats.get("victories", 0))
+        elif condition_type == "gold_earned":
+            current = int(stats.get("gold_earned", 0))
+        elif condition_type == "quests_completed":
+            current = int(stats.get("quests_completed", 0))
+        elif condition_type == "level":
+            leader = self.party.leader if self.party else None
+            current = int(getattr(leader, "level", 0))
+        else:
+            current = 0
+        return min(current, target), target
+
+    def _conditions_met(self, conditions: list[dict[str, Any]] | dict[str, Any]) -> bool:
+        if isinstance(conditions, dict):
+            conditions = [conditions]
+        return all(current >= target for current, target in (self._condition_progress(condition) for condition in conditions))
+
+    def _quest_status(self, quest_id: str) -> str:
+        quests = self.progression.setdefault("quests", {"active": [], "completed": [], "claimed": []})
+        if quest_id in quests.get("claimed", []):
+            return "claimed"
+        quest = self.quest_catalog.get(quest_id, {})
+        if quest_id in quests.get("active", []):
+            return "claimable" if self._conditions_met(quest.get("conditions", {})) else "active"
+        return "available"
+
+    def _claim_quest(self, quest_id: str) -> None:
+        quest = self.quest_catalog.get(quest_id)
+        if quest is None or self._quest_status(quest_id) != "claimable":
+            return
+        rewards = quest.get("rewards", {})
+        leader = self.party.leader if self.party else None
+        if leader is not None:
+            leader.gold += int(rewards.get("gold", 0))
+            if rewards.get("xp"):
+                leader.gain_xp(int(rewards["xp"]))
+        for category in ("items", "weapons", "armors"):
+            for item_id, quantity in rewards.get(category, {}).items():
+                self.inventory[category][item_id] = self.inventory[category].get(item_id, 0) + int(quantity)
+        quests_state = self.progression["quests"]
+        quests_state["active"].remove(quest_id)
+        quests_state.setdefault("completed", []).append(quest_id)
+        quests_state.setdefault("claimed", []).append(quest_id)
+        self.progression["stats"]["quests_completed"] = int(self.progression["stats"].get("quests_completed", 0)) + 1
+        self._update_titles()
+
+    def _update_titles(self) -> None:
+        titles = self.progression.setdefault("titles", {})
+        for title in self.title_catalog.values():
+            title_id = str(title["id"])
+            conditions = title.get("conditions", {})
+            progress = [self._condition_progress(condition) for condition in (conditions if isinstance(conditions, list) else [conditions])]
+            titles[title_id] = {
+                "progress": [{"current": current, "target": target} for current, target in progress],
+                "unlocked": all(current >= target for current, target in progress),
+            }
 
     def _game_over_buttons(self) -> list[Button]:
         # Unique appel à l'action après la défaite: revenir au menu.
@@ -1083,6 +1227,52 @@ class PygameApp:
         self._draw_text("Le marchand n'est pas encore branché à l'UI pygame.", (100, 170), self.font, MUTED)
         self._draw_centered_text("Écran réservé", (640, 340), self.font_big, ACCENT_2)
         self._draw_buttons(self._shop_buttons())
+
+    def _draw_quests(self) -> None:
+        self._draw_panel(QUESTS_PANEL_RECT, PANEL)
+        board = self._ui_panel_surface(QUESTS_BOARD_RECT.size, "freefantasy", "ff_001", PANEL_2)
+        self.screen.blit(board, QUESTS_BOARD_RECT.topleft)
+        self._draw_text("Tableau des quêtes", (115, 82), self.font_big, ACCENT)
+        self._draw_text("Les tâches proposées par les habitants du village", (115, 110), self.font_small, MUTED)
+        for index, quest in enumerate(self.quest_catalog.values()):
+            y = 150 + index * 112
+            self._draw_text(str(quest.get("name", quest["id"])), (145, y), self.font, ACCENT)
+            self._draw_text(str(quest.get("description", "")), (145, y + 30), self.font_small, TEXT)
+            conditions = quest.get("conditions", {})
+            conditions = conditions if isinstance(conditions, list) else [conditions]
+            progress = ", ".join(
+                f"{current}/{target}"
+                for current, target in (self._condition_progress(condition) for condition in conditions)
+            )
+            self._draw_text(f"Avancement: {progress}", (145, y + 56), self.font_small, MUTED)
+        self._draw_buttons(self._quest_buttons())
+
+    def _draw_titles(self) -> None:
+        self._update_titles()
+        self._draw_panel(TITLES_PANEL_RECT, PANEL)
+        self._draw_text("Titres", (115, 82), self.font_big, ACCENT)
+        self._draw_text("Toutes les distinctions connues et leur avancement", (115, 135), self.font_small, MUTED)
+        for index, title in enumerate(self.title_catalog.values()):
+            y = 180 + index * 72
+            state = self.progression["titles"].get(str(title["id"]), {})
+            progress = " / ".join(
+                f"{item['current']}/{item['target']}"
+                for item in state.get("progress", [])
+            )
+            unlocked = "Débloqué" if state.get("unlocked") else progress
+            self._draw_text(
+                str(title.get("name", title["id"])),
+                (140, y),
+                self.font,
+                SUCCESS if state.get("unlocked") else ACCENT,
+            )
+            self._draw_text(
+                f"{title.get('description', '')} — {unlocked}",
+                (140, y + 30),
+                self.font_small,
+                TEXT,
+            )
+        self._draw_buttons(self._title_buttons())
 
     def _draw_game_over(self) -> None:
         # Écran de fin, centré et très lisible, avec une seule action de retour.

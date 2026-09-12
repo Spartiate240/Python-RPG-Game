@@ -1,0 +1,16 @@
+[
+    {
+        "id": "goblin_killer",
+        "name": "Tueur de gobelins",
+        "description": "Vous avez appris a survivre aux combats repetes.",
+        "conditions": [{"type": "victories", "target": 10}],
+        "effect": "Augmente les degats contre les gobelins de 10%"
+    },
+    {
+        "id": "quest_veteran",
+        "name": "Veteran des quetes",
+        "description": "Vous avez mene plusieurs missions a leur terme.",
+        "conditions": [{"type": "quests_completed", "target": 3}],
+        "effect": "Titre honorifique"
+    }
+]

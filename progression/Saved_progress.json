@@ -12,14 +12,17 @@
       "xp": 4,
       "gold": 0,
       "weapon": null,
+      "weapon_primary": null,
+      "weapon_secondary": null,
       "helmet": null,
       "chest": null,
       "legs": null,
       "boots": null,
-      "arms": null
+      "arms": null,
+      "inventory": []
     },
-        {
-      "type": "Comapnion",
+    {
+      "type": "companion",
       "name": "Hald",
       "hp": 98,
       "max_hp": 50,
@@ -28,18 +31,19 @@
       "speed": 10,
       "level": 1,
       "xp": 4,
-      "gold": 0,
+      "role": "attacker",
       "weapon": null,
+      "weapon_primary": null,
+      "weapon_secondary": null,
       "helmet": null,
       "chest": null,
       "legs": null,
       "boots": null,
-      "arms": null
+      "arms": null,
+      "inventory": []
     }
   ],
-  "active_indexes": [
-    0
-  ],
+  "active_indexes": [0],
   "game_state": {
     "state": "EXPLORATION",
     "location": "village"
@@ -52,6 +56,28 @@
     "weapons": {},
     "armors": {
       "plate_armor": 1
+    }
+  },
+  "progression": {
+    "stats": {
+      "victories": 0,
+      "gold_earned": 0,
+      "quests_completed": 0
+    },
+    "quests": {
+      "active": [],
+      "completed": [],
+      "claimed": []
+    },
+    "titles": {
+      "goblin_killer": {
+        "progress": [{"current": 0, "target": 10}],
+        "unlocked": false
+      },
+      "quest_veteran": {
+        "progress": [{"current": 0, "target": 3}],
+        "unlocked": false
+      }
     }
   },
   "sprite": "assets/sprites/player/Player_M_1.png"

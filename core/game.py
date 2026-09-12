@@ -34,6 +34,11 @@ class Game:
         self.party: Party | None = None
         self.location: str | None = None
         self.inventory: dict[str, int] = {"items": {}, "weapons": {}, "armors": {}}
+        self.progression: dict = {
+            "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
+            "quests": {"active": [], "completed": [], "claimed": []},
+            "titles": {},
+        }
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:
@@ -50,13 +55,17 @@ class Game:
             game_state["location"] = self.location
         data["game_state"] = game_state
         data["inventory"] = self.inventory
+        data["progression"] = self.progression
         self._write_json(GAME_SAVE_PATH, data)
 
     def _load_progress(self) -> tuple[Party, GameState]:
         if not GAME_SAVE_PATH.exists():
             return self._new_party(), GameState.EXPLORATION
 
-        data = self._read_json(GAME_SAVE_PATH)
+        try:
+            data = self._read_json(GAME_SAVE_PATH)
+        except (json.JSONDecodeError, OSError):
+            return self._new_party(), GameState.EXPLORATION
         self.location = None
 
         game_state = data.get("game_state", {})
@@ -67,6 +76,7 @@ class Game:
             state_name = GameState.EXPLORATION.name
 
         self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}})
+        self.progression = data.get("progression", self.progression)
         try:
             state = GameState[state_name]
         except KeyError:

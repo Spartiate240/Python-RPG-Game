@@ -96,7 +96,9 @@ class Player(Ally):
             "level": self.level,
             "xp": self.xp,
             "gold": self.gold,
-            "weapon": _item_id(self.weapon),
+            "weapon": _item_id(self.weapon_primary),
+            "weapon_primary": _item_id(self.weapon_primary),
+            "weapon_secondary": _item_id(self.weapon_secondary),
             "helmet": _item_id(self.helmet),
             "chest": _item_id(self.chest),
             "legs": _item_id(self.legs),
@@ -121,7 +123,8 @@ class Player(Ally):
             gold=data["gold"],
         )
         player.hp = data["hp"]
-        player.weapon = _resolve_item(data.get("weapon"))
+        player.weapon_primary = _resolve_item(data.get("weapon_primary", data.get("weapon")))
+        player.weapon_secondary = _resolve_item(data.get("weapon_secondary"))
         player.helmet = _resolve_item(data.get("helmet"))
         player.chest = _resolve_item(data.get("chest"))
         player.legs = _resolve_item(data.get("legs"))

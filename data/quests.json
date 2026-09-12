@@ -1,0 +1,16 @@
+[
+    {
+        "id": "goblin_menace",
+        "name": "Menace gobeline",
+        "description": "Remportez dix combats contre les menaces qui entourent le village.",
+        "conditions": {"type": "victories", "target": 10},
+        "rewards": {"gold": 100, "xp": 500, "items": {"small_health_potion": 2}}
+    },
+    {
+        "id": "stolen_artifact",
+        "name": "Artefact vole",
+        "description": "Remportez cinq combats et rapportez la paix au musee.",
+        "conditions": {"type": "victories", "target": 5},
+        "rewards": {"gold": 200, "xp": 800}
+    }
+]

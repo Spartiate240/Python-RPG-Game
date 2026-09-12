@@ -8,6 +8,7 @@ spécialiser le "cerveau" (choose_action) et quelques attributs.
 """
 
 from __future__ import annotations
+import re
 from typing import TYPE_CHECKING, Any
 
 from entities.combatant import Combatant, Action
@@ -40,6 +41,7 @@ class Ally(Combatant):
         self.legs: Any | None = None
         self.boots: Any | None = None
         self.arms: Any | None = None
+        self.pet: Any | None = None
         self.skills: list["Skill"] = []
 
     # ---- Équipement ------------------------------------------------
@@ -73,6 +75,9 @@ class Ally(Combatant):
     def equip_arms(self, arms: Any) -> None:
         self.arms = arms
 
+    def equip_pet(self, pet: Any | None) -> None:
+        self.pet = pet
+
     def equip_armor(self, armor: Any) -> None:
         self.equip_chest(armor)
 
@@ -89,6 +94,7 @@ class Ally(Combatant):
         bonuses = (
             _item_value(self.weapon_primary, ("attack_bonus", "damage")),
             _item_value(self.weapon_secondary, ("attack_bonus", "damage")),
+            _pet_attack_bonus(self.pet),
         )
         return self.attack + sum(bonuses)
 
@@ -132,3 +138,21 @@ def _item_value(item: Any | None, keys: tuple[str, ...]) -> int:
         if isinstance(value, (int, float)):
             return int(value)
     return 0
+
+
+def _pet_attack_bonus(pet: Any | None) -> int:
+    """Extracts the attack bonus from a pet's data-driven effect."""
+    effect = _value(pet, "effect")
+    explicit_bonus = _value(pet, "attack_bonus")
+    if isinstance(explicit_bonus, (int, float)):
+        return int(explicit_bonus)
+    if not isinstance(effect, str):
+        return 0
+    match = re.search(r"attack\s+increased\s+by\s+(\d+)", effect, re.IGNORECASE)
+    return int(match.group(1)) if match else 0
+
+
+def _value(item: Any | None, key: str) -> Any:
+    if isinstance(item, dict):
+        return item.get(key)
+    return getattr(item, key, None)

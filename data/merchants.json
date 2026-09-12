@@ -1,0 +1,33 @@
+
+[
+    {
+        "id": "basic_merchant",
+        "name": "Basic Merchant",
+        "description": "Un marchand avec les premières nécessités.",
+        "sprite": "assets/sprites/player/Player_M_1.png",
+        "inventory": {
+            "items": {
+                "health_potion": ["cost", 10, "quantity", 5],
+                "mana_potion": ["cost", 15, "quantity", 3]
+            },
+            "weapons": {
+                "basic_sword": ["cost", 50, "quantity", 1]
+            },
+            "armors": {
+                "leather_armor": ["cost", 25, "quantity", 1]
+            }
+        }
+    },
+    {
+        "id": "pet_shop",
+        "name": "Marchand de Compagnons",
+        "description": "Un marchand spécialisé dans les compagnons.",
+        "sprite": "assets/sprites/player/Player_M_2.png",
+        "inventory": {
+            "pets": {
+                "dog": ["cost", 100, "quantity", 1],
+                "dragon": ["cost", 150, "quantity", 1]
+            }
+        }
+    }
+]

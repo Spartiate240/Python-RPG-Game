@@ -33,7 +33,7 @@ class Game:
         self.state = GameState.MAIN_MENU
         self.party: Party | None = None
         self.location: str | None = None
-        self.inventory: dict[str, int] = {"items": {}, "weapons": {}, "armors": {}}
+        self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.progression: dict = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
@@ -49,6 +49,7 @@ class Game:
         if self.party is None:
             return
 
+        self.inventory.setdefault("pets", {})
         data = self.party.to_dict()
         game_state = {"state": self.state.name}
         if self.location is not None:
@@ -75,7 +76,8 @@ class Game:
         else:
             state_name = GameState.EXPLORATION.name
 
-        self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}})
+        self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}, "pets": {}})
+        self.inventory.setdefault("pets", {})
         self.progression = data.get("progression", self.progression)
         try:
             state = GameState[state_name]

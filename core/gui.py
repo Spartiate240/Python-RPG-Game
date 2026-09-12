@@ -18,6 +18,7 @@ import pygame
 
 from core.game import Game, GameState
 from entities.combatant import Combatant
+from entities.companion import Companion
 from entities.enemy import Enemy
 from entities.player import Player
 from party.party import Party
@@ -52,6 +53,13 @@ STATUS_ITEM_ICON_SIZE = (28, 28)
 
 
 SHOP_BACK_BUTTON_RECT = pygame.Rect(1075, 610, 130, 56)
+SHOP_PANEL_RECT = pygame.Rect(60, 70, 1160, 580)
+SHOP_MERCHANT_BUTTON_RECT = pygame.Rect(150, 205, 980, 70)
+SHOP_ITEM_BUTTON_X = 130
+SHOP_ITEM_BUTTON_W = 700
+SHOP_ITEM_BUTTON_H = 48
+SHOP_ITEM_START_Y = 190
+SHOP_ITEM_ROW_GAP = 58
 QUESTS_PANEL_RECT = pygame.Rect(70, 55, 1140, 610)
 QUESTS_BOARD_RECT = pygame.Rect(105, 125, 1070, 470)
 QUESTS_BACK_BUTTON_RECT = pygame.Rect(1035, 610, 150, 48)
@@ -246,7 +254,7 @@ class PygameApp:
         self.state = "main_menu"
         self.party: Party | None = None
         self.location: str | None = None
-        self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}}
+        self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
         self.pending_targeting = False
         # Message court pour confirmer une action d'équipement ou de retrait.
@@ -265,8 +273,13 @@ class PygameApp:
         self.item_catalog = self._load_catalog(DATA_DIR / "items.json")
         self.weapon_catalog = self._load_catalog(DATA_DIR / "weapons.json")
         self.armor_catalog = self._load_catalog(DATA_DIR / "armor.json")
+        self.pet_catalog = self._load_catalog(DATA_DIR / "pets.json")
         self.quest_catalog = self._load_catalog(DATA_DIR / "quests.json")
         self.title_catalog = self._load_catalog(DATA_DIR / "titles.json")
+        self.merchant_catalog = self._load_catalog(DATA_DIR / "merchants.json")
+        self.merchant_stock: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
+        self.selected_merchant_id: str | None = None
+        self._reset_merchant_stock()
         self.progression: dict[str, Any] = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
@@ -284,7 +297,81 @@ class PygameApp:
         # Convertit un identifiant d'objet en entrée JSON complète.
         if item_id is None:
             return None
-        return self.item_catalog.get(item_id) or self.weapon_catalog.get(item_id) or self.armor_catalog.get(item_id)
+        return (
+            self.item_catalog.get(item_id)
+            or self.weapon_catalog.get(item_id)
+            or self.armor_catalog.get(item_id)
+            or self.pet_catalog.get(item_id)
+        )
+
+    def _reset_merchant_stock(self) -> None:
+        # Le stock vivant est séparé du catalogue pour que les achats diminuent
+        # réellement les quantités pendant la partie.
+        self.merchant_stock = {}
+        for merchant_id, merchant in self.merchant_catalog.items():
+            stock: dict[str, dict[str, dict[str, int]]] = {}
+            for category, entries in merchant.get("inventory", {}).items():
+                stock[category] = {}
+                for item_id, values in entries.items():
+                    values = values if isinstance(values, dict) else dict(zip(values[::2], values[1::2]))
+                    stock[category][item_id] = {
+                        "cost": int(values.get("cost", 0)),
+                        "quantity": int(values.get("quantity", 0)),
+                    }
+            self.merchant_stock[merchant_id] = stock
+
+    def _selected_merchant(self) -> dict[str, Any] | None:
+        if self.selected_merchant_id is None:
+            return None
+        return self.merchant_catalog.get(self.selected_merchant_id)
+
+    def _merchant_item_buttons(self) -> list[Button]:
+        merchant = self._selected_merchant()
+        if merchant is None:
+            return []
+
+        buttons: list[Button] = []
+        row_index = 0
+        stock = self.merchant_stock.get(self.selected_merchant_id or "", {})
+        for category, entries in stock.items():
+            for item_id, values in entries.items():
+                item = self._resolve_catalog_item(item_id)
+                quantity = int(values.get("quantity", 0))
+                cost = int(values.get("cost", 0))
+                label = item.get("name", item_id) if item else f"Objet inconnu ({item_id})"
+                buttons.append(
+                    Button(
+                        f"{label}  —  {cost} or  —  x{quantity}",
+                        pygame.Rect(SHOP_ITEM_BUTTON_X, SHOP_ITEM_START_Y + row_index * SHOP_ITEM_ROW_GAP, SHOP_ITEM_BUTTON_W, SHOP_ITEM_BUTTON_H),
+                        f"buy:{category}:{item_id}",
+                        payload={"item": item, "category": category, "item_id": item_id, "cost": cost},
+                        enabled=item is not None and quantity > 0,
+                    )
+                )
+                row_index += 1
+        return buttons
+
+    def _buy_merchant_item(self, parts: list[str]) -> None:
+        if len(parts) != 2 or self.selected_merchant_id is None:
+            return
+        category, item_id = parts
+        item = self._resolve_catalog_item(item_id)
+        entry = self.merchant_stock.get(self.selected_merchant_id, {}).get(category, {}).get(item_id)
+        leader = self.party.leader if self.party else None
+        if item is None or entry is None or leader is None:
+            self.status_feedback = "Cet objet n'est pas disponible."
+            return
+        cost = int(entry.get("cost", 0))
+        if int(entry.get("quantity", 0)) <= 0:
+            self.status_feedback = "Cet objet est épuisé."
+            return
+        if not leader.spend_gold(cost):
+            self.status_feedback = "Pas assez d'or."
+            return
+
+        entry["quantity"] = int(entry["quantity"]) - 1
+        self._add_shared_item(SimpleNamespace(**item))
+        self.status_feedback = f"{item.get('name', item_id)} acheté."
 
     def _item_label(self, item: object | None) -> str:
         # Nom lisible d'un objet, quel que soit son type concret.
@@ -330,6 +417,7 @@ class PygameApp:
             ("Vitesse", ("speed",)),
             ("Niveau requis", ("level_required", "required_level")),
             ("Rareté", ("rarity",)),
+            ("Effet", ("effect",)),
         )
         for label, names in stat_labels:
             value = self._item_stat(item, *names)
@@ -437,6 +525,13 @@ class PygameApp:
 
         slot = self._item_slot(item)
 
+        if self._is_pet(item):
+            if player.pet is not None:
+                self._add_shared_item(player.pet)
+            player.equip_pet(item)
+            self.status_feedback = f"{self._item_label(item)} équipé."
+            return
+
         if self._is_weapon(item):
             if player.weapon_primary is None:
                 player.equip_weapon(item)
@@ -486,7 +581,7 @@ class PygameApp:
         item_id = self._item_id(item)
         if item_id is None:
             return False
-        category = "weapons" if self._is_weapon(item) else "armors" if self._item_slot(item) else "items"
+        category = self._shared_category(item)
         entries = self.inventory.get(category, {})
         quantity = int(entries.get(item_id, 0))
         if quantity <= 0:
@@ -498,6 +593,8 @@ class PygameApp:
         return True
 
     def _shared_category(self, item: object) -> str:
+        if self._is_pet(item):
+            return "pets"
         return "weapons" if self._is_weapon(item) else "armors" if self._item_slot(item) else "items"
 
     def _add_shared_item(self, item: object | None) -> None:
@@ -517,9 +614,12 @@ class PygameApp:
             member.inventory.clear()
 
     def _is_equippable(self, item: object) -> bool:
-        return self._is_weapon(item) or self._item_slot(item) in {
+        return self._is_pet(item) or self._is_weapon(item) or self._item_slot(item) in {
             "helmet", "chest", "legs", "boots", "arms"
         }
+
+    def _is_pet(self, item: object | None) -> bool:
+        return self._item_id(item) in self.pet_catalog
 
     def _unequip_slot(self, slot: str) -> None:
         # Cliquer sur un slot équipé le remet simplement dans l'inventaire
@@ -556,6 +656,10 @@ class PygameApp:
             self._add_shared_item(player.arms)
             player.equip_arms(None)
             self.status_feedback = "Bras retirés."
+        elif slot == "pet" and player.pet is not None:
+            self._add_shared_item(player.pet)
+            player.equip_pet(None)
+            self.status_feedback = "Compagnon retiré."
 
     def _status_member_buttons(self) -> list[Button]:
         # Colonne gauche de l'écran statut: un bouton par membre du groupe,
@@ -591,6 +695,7 @@ class PygameApp:
             ("legs", "Jambes", player.legs),
             ("boots", "Pieds", player.boots),
             ("arms", "Bras", player.arms),
+            ("pet", "Pet", player.pet),
         ]
 
         buttons: list[Button] = []
@@ -639,7 +744,7 @@ class PygameApp:
         buttons: list[Button] = []
         row_index = 0
 
-        for category in ("weapons", "armors", "items"):
+        for category in ("weapons", "armors", "pets", "items"):
             entries = self.inventory.get(category, {})
             for item_id, quantity in entries.items():
                 item = self._item_from_stock(item_id)
@@ -845,6 +950,16 @@ class PygameApp:
             self._start_battle()
         elif action == "shop":
             self.state = "shop"
+            self.selected_merchant_id = None
+            self.status_feedback = ""
+        elif action.startswith("merchant:"):
+            self.selected_merchant_id = action.split(":", 1)[1]
+            self.status_feedback = ""
+        elif action == "merchant_list":
+            self.selected_merchant_id = None
+            self.status_feedback = ""
+        elif action.startswith("buy:"):
+            self._buy_merchant_item(action.split(":", 2)[1:])
         elif action == "quests":
             self.state = "quests"
         elif action == "titles":
@@ -908,12 +1023,14 @@ class PygameApp:
     def _new_game(self) -> None:
         self.party = self.core._new_party()
         self.location = None
-        self.inventory = {"items": {}, "weapons": {}, "armors": {}}
+        self.inventory = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.progression = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
             "titles": {},
         }
+        self._reset_merchant_stock()
+        self.selected_merchant_id = None
         self.core.progression = self.progression
         self._update_titles()
         self.battle = None
@@ -930,6 +1047,7 @@ class PygameApp:
         self.battle = None
         self.pending_targeting = False
         self.selected_member_index = 0
+        self.selected_merchant_id = None
         self.state = "game_over" if loaded_state == GameState.GAME_OVER else "exploration"
         self.progression = self.core.progression
         self._update_titles()
@@ -1063,8 +1181,26 @@ class PygameApp:
         return [Button("Retour", STATUS_BACK_BUTTON_RECT, "back")]
 
     def _shop_buttons(self) -> list[Button]:
-        # Bouton de retour de l'écran boutique.
-        return [Button("Retour", SHOP_BACK_BUTTON_RECT, "back")]
+        # La boutique commence par le choix d'un marchand, puis affiche son stock.
+        buttons = [Button("Retour", SHOP_BACK_BUTTON_RECT, "back")]
+        if self.selected_merchant_id is None:
+            for index, merchant in enumerate(self.merchant_catalog.values()):
+                buttons.append(
+                    Button(
+                        str(merchant.get("name", merchant["id"])),
+                        pygame.Rect(
+                            SHOP_MERCHANT_BUTTON_RECT.x,
+                            SHOP_MERCHANT_BUTTON_RECT.y + index * 86,
+                            SHOP_MERCHANT_BUTTON_RECT.w,
+                            SHOP_MERCHANT_BUTTON_RECT.h,
+                        ),
+                        f"merchant:{merchant['id']}",
+                    )
+                )
+        else:
+            buttons.append(Button("Changer de marchand", pygame.Rect(760, 545, 280, 48), "merchant_list"))
+            buttons.extend(self._merchant_item_buttons())
+        return buttons
 
     def _quest_buttons(self) -> list[Button]:
         buttons = [Button("Retour", QUESTS_BACK_BUTTON_RECT, "back")]
@@ -1127,7 +1263,8 @@ class PygameApp:
             leader.gold += int(rewards.get("gold", 0))
             if rewards.get("xp"):
                 leader.gain_xp(int(rewards["xp"]))
-        for category in ("items", "weapons", "armors"):
+        for category in ("items", "weapons", "armors", "pets"):
+            self.inventory.setdefault(category, {})
             for item_id, quantity in rewards.get(category, {}).items():
                 self.inventory[category][item_id] = self.inventory[category].get(item_id, 0) + int(quantity)
         quests_state = self.progression["quests"]
@@ -1141,12 +1278,39 @@ class PygameApp:
         titles = self.progression.setdefault("titles", {})
         for title in self.title_catalog.values():
             title_id = str(title["id"])
+            previous_state = titles.get(title_id, {})
             conditions = title.get("conditions", {})
             progress = [self._condition_progress(condition) for condition in (conditions if isinstance(conditions, list) else [conditions])]
             titles[title_id] = {
                 "progress": [{"current": current, "target": target} for current, target in progress],
                 "unlocked": all(current >= target for current, target in progress),
+                "reward_claimed": bool(previous_state.get("reward_claimed", False)),
             }
+            self._claim_title_reward(title, titles[title_id])
+
+    def _claim_title_reward(self, title: dict[str, Any], title_state: dict[str, Any]) -> None:
+        if not title_state.get("unlocked") or title_state.get("reward_claimed"):
+            return
+        reward = title.get("reward", {})
+        if reward.get("type") != "companion" or self.party is None:
+            return
+        companion_id = str(reward.get("id", title.get("id", "companion")))
+        if any(getattr(companion, "reward_id", None) == companion_id for companion in self.party.companions):
+            title_state["reward_claimed"] = True
+            return
+
+        companion = Companion(
+            name=str(reward.get("name", "Compagnon")),
+            max_hp=int(reward.get("max_hp", 20)),
+            attack=int(reward.get("attack", 3)),
+            defense=int(reward.get("defense", 1)),
+            speed=int(reward.get("speed", 1)),
+            role=str(reward.get("role", "attacker")),
+        )
+        companion.reward_id = companion_id
+        self.party.recruit(companion)
+        title_state["reward_claimed"] = True
+        self.status_feedback = f"{companion.name} rejoint votre groupe."
 
     def _game_over_buttons(self) -> list[Button]:
         # Unique appel à l'action après la défaite: revenir au menu.
@@ -1221,11 +1385,27 @@ class PygameApp:
         self._draw_buttons(self._status_buttons())
 
     def _draw_shop(self) -> None:
-        # Écran boutique encore volontairement simple: il sert de place réservée.
-        self._draw_panel(pygame.Rect(60, 70, 1160, 580), PANEL)
+        self._draw_panel(SHOP_PANEL_RECT, PANEL)
         self._draw_text("Boutique", (100, 110), self.font_big, ACCENT)
-        self._draw_text("Le marchand n'est pas encore branché à l'UI pygame.", (100, 170), self.font, MUTED)
-        self._draw_centered_text("Écran réservé", (640, 340), self.font_big, ACCENT_2)
+        merchant = self._selected_merchant()
+        if merchant is None:
+            self._draw_text("Choisis ton marchand.", (100, 170), self.font, MUTED)
+            for index, merchant_entry in enumerate(self.merchant_catalog.values()):
+                self._draw_text(
+                    str(merchant_entry.get("description", "")),
+                    (175, 282 + index * 86),
+                    self.font_small,
+                    MUTED,
+                )
+        else:
+            gold = self.party.leader.gold if self.party and self.party.leader else 0
+            self._draw_text(str(merchant.get("name", "Marchand")), (100, 165), self.font, ACCENT_2)
+            self._draw_text(str(merchant.get("description", "")), (100, 200), self.font_small, MUTED)
+            self._draw_text(f"Or: {gold}", (900, 115), self.font, SUCCESS)
+            self._draw_text("Stock", (100, 150), self.font, ACCENT)
+            self._draw_text("Les références absentes des catalogues sont indisponibles.", (100, 510), self.font_small, MUTED)
+            if self.status_feedback:
+                self._draw_text(self.status_feedback, (100, 565), self.font_small, TEXT)
         self._draw_buttons(self._shop_buttons())
 
     def _draw_quests(self) -> None:

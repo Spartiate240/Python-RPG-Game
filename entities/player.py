@@ -23,7 +23,7 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 def _load_item_catalog() -> dict[str, dict]:
     catalog: dict[str, dict] = {}
-    for filename in ("items.json", "weapons.json", "armor.json"):
+    for filename in ("items.json", "weapons.json", "armor.json", "pets.json"):
         path = DATA_DIR / filename
         if not path.exists():
             continue
@@ -104,6 +104,7 @@ class Player(Ally):
             "legs": _item_id(self.legs),
             "boots": _item_id(self.boots),
             "arms": _item_id(self.arms),
+            "pet": _item_id(self.pet),
             "inventory": [
                 item_id for item_id in (_item_id(item) for item in self.inventory)
                 if item_id is not None
@@ -130,6 +131,7 @@ class Player(Ally):
         player.legs = _resolve_item(data.get("legs"))
         player.boots = _resolve_item(data.get("boots"))
         player.arms = _resolve_item(data.get("arms"))
+        player.equip_pet(_resolve_item(data.get("pet")))
         player.inventory = [
             item for item in (_resolve_item(item_id) for item_id in data.get("inventory", []))
             if item is not None

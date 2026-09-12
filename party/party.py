@@ -109,6 +109,7 @@ class Party:
 def _companion_to_dict(companion: Companion) -> dict:
     return {
         "name": companion.name,
+        "reward_id": getattr(companion, "reward_id", None),
         "hp": companion.hp,
         "max_hp": companion.max_hp,
         "attack": companion.attack,
@@ -125,6 +126,7 @@ def _companion_to_dict(companion: Companion) -> dict:
         "legs": _item_id(companion.legs),
         "boots": _item_id(companion.boots),
         "arms": _item_id(companion.arms),
+        "pet": _item_id(companion.pet),
         "inventory": [
             item_id for item_id in (_item_id(item) for item in companion.inventory)
             if item_id is not None
@@ -143,6 +145,8 @@ def _companion_from_dict(data: dict) -> Companion:
         level=data.get("level", 1),
         xp=data.get("xp", 0),
     )
+    if data.get("reward_id") is not None:
+        companion.reward_id = data["reward_id"]
     companion.hp = data["hp"]
     companion.weapon_primary = _resolve_item(data.get("weapon_primary", data.get("weapon")))
     companion.weapon_secondary = _resolve_item(data.get("weapon_secondary"))
@@ -151,6 +155,7 @@ def _companion_from_dict(data: dict) -> Companion:
     companion.legs = _resolve_item(data.get("legs"))
     companion.boots = _resolve_item(data.get("boots"))
     companion.arms = _resolve_item(data.get("arms"))
+    companion.equip_pet(_resolve_item(data.get("pet")))
     companion.inventory = [
         item for item in (_resolve_item(item_id) for item_id in data.get("inventory", []))
         if item is not None

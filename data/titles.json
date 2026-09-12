@@ -12,5 +12,22 @@
         "description": "Vous avez mene plusieurs missions a leur terme.",
         "conditions": [{"type": "quests_completed", "target": 3}],
         "effect": "Titre honorifique"
+    },
+    {
+        "id": "village_hero",
+        "name": "Heros du village",
+        "description": "Vous avez grandement aidé le village.",
+        "conditions": [{"type": "quests_completed", "target": 10}],
+        "effect": "Un nouveau compagnon vous rejoint",
+        "reward": {
+            "type": "companion",
+            "id": "village_guardian",
+            "name": "Gardien du village",
+            "max_hp": 24,
+            "attack": 4,
+            "defense": 2,
+            "speed": 2,
+            "role": "attacker"
+        }
     }
 ]

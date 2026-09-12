@@ -1,0 +1,14 @@
+[
+    {
+        "id": "dog",
+        "name": "Chien",
+        "effect": "attack increased by 5",
+        "sprite": "assets/sprites/pets/dog.png"
+    },
+    {
+        "id": "dragon",
+        "name": "Dragon",
+        "effect": "attack increased by 50",
+        "sprite": "assets/sprites/pets/dragon.png"
+    }
+]

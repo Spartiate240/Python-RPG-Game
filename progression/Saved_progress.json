@@ -19,19 +19,21 @@
       "legs": null,
       "boots": null,
       "arms": null,
+      "pet": null,
       "inventory": []
     },
     {
       "type": "companion",
       "name": "Hald",
+      "reward_id": null,
       "hp": 98,
       "max_hp": 50,
       "attack": 30,
       "defense": 8,
       "speed": 10,
+      "role": "attacker",
       "level": 1,
       "xp": 4,
-      "role": "attacker",
       "weapon": null,
       "weapon_primary": null,
       "weapon_secondary": null,
@@ -40,10 +42,13 @@
       "legs": null,
       "boots": null,
       "arms": null,
+      "pet": null,
       "inventory": []
     }
   ],
-  "active_indexes": [0],
+  "active_indexes": [
+    0
+  ],
   "game_state": {
     "state": "EXPLORATION",
     "location": "village"
@@ -56,7 +61,8 @@
     "weapons": {},
     "armors": {
       "plate_armor": 1
-    }
+    },
+    "pets": {}
   },
   "progression": {
     "stats": {
@@ -65,20 +71,44 @@
       "quests_completed": 0
     },
     "quests": {
-      "active": [],
+      "active": [
+        "stolen_artifact",
+        "goblin_menace"
+      ],
       "completed": [],
       "claimed": []
     },
     "titles": {
       "goblin_killer": {
-        "progress": [{"current": 0, "target": 10}],
-        "unlocked": false
+        "progress": [
+          {
+            "current": 0,
+            "target": 10
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
       },
       "quest_veteran": {
-        "progress": [{"current": 0, "target": 3}],
-        "unlocked": false
+        "progress": [
+          {
+            "current": 0,
+            "target": 3
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
+      },
+      "village_hero": {
+        "progress": [
+          {
+            "current": 0,
+            "target": 10
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
       }
     }
-  },
-  "sprite": "assets/sprites/player/Player_M_1.png"
+  }
 }

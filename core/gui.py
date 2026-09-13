@@ -8,7 +8,7 @@ pour la sauvegarde et le combat.
 from __future__ import annotations
 
 import json
-from collections import deque
+import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,9 +16,12 @@ from typing import Any
 
 import pygame
 
+from core.battle import Battle
+from core.catalog import Catalogs
 from core.game import Game, GameState
+from core.inventory import InventoryManager
+from core.progression import ProgressionManager
 from entities.combatant import Combatant
-from entities.companion import Companion
 from entities.enemy import Enemy
 from entities.player import Player
 from party.party import Party
@@ -101,144 +104,6 @@ class Button:
     sprite_id: str | None = None
 
 
-class Battle:
-    # Gère uniquement la logique du combat.
-    # Elle n'affiche rien et ne connaît pas pygame.
-    # Son rôle est de fournir à l'UI l'acteur courant, le journal et le résultat.
-    def __init__(self, party: Party, enemies: list[Enemy], enemy_meta: list[dict]) -> None:
-        self.party = party
-        self.enemies = enemies
-        self.enemy_meta = enemy_meta
-        self.turn_order: list[Combatant] = []
-        self.turn_index = 0
-        self.messages: deque[str] = deque(maxlen=7)
-        self.result: str | None = None
-        self._rebuild_turn_order()
-        self._auto_play_until_player()
-
-    def _rebuild_turn_order(self) -> None:
-        # Centre logique: tout ce qui combat est fusionné dans une file unique,
-        # puis trié par vitesse pour déterminer l'ordre d'affichage des tours.
-        combatants = [*self.party.active_members(), *self.enemies]
-        self.turn_order = sorted(combatants, key=lambda combatant: combatant.speed, reverse=True)
-        self.turn_index = 0
-
-    def _current_actor(self) -> Combatant | None:
-        # Le combat affiché à l'écran dépend de cet acteur courant.
-        # On saute les morts pour éviter d'afficher un tour vide.
-        if self.result is not None:
-            return None
-        if not self.turn_order:
-            self._rebuild_turn_order()
-        if not self.turn_order:
-            return None
-        if self.turn_index >= len(self.turn_order):
-            self._rebuild_turn_order()
-        if not self.turn_order:
-            return None
-        while self.turn_index < len(self.turn_order) and not self.turn_order[self.turn_index].is_alive():
-            self.turn_index += 1
-            if self.turn_index >= len(self.turn_order):
-                self._rebuild_turn_order()
-                if not self.turn_order:
-                    return None
-        return self.turn_order[self.turn_index]
-
-    def _advance_turn(self) -> None:
-        self.turn_index += 1
-        if self.turn_index >= len(self.turn_order):
-            self._rebuild_turn_order()
-
-    def _attack_value(self, actor: Combatant) -> int:
-        return int(getattr(actor, "total_attack", actor.attack))
-
-    def _defense_value(self, target: Combatant) -> int:
-        return int(getattr(target, "total_defense", target.defense))
-
-    def _log(self, message: str) -> None:
-        # Le journal visible à droite de l'écran reprend les dernières actions.
-        self.messages.append(message)
-
-    def _check_outcome(self) -> None:
-        # Cette fonction décide si l'écran de combat doit basculer vers victoire/défaite.
-        if not any(member.is_alive() for member in self.party.active_members()):
-            self.result = "defeat"
-            self._log("Le groupe a été vaincu.")
-            return
-        if not any(enemy.is_alive() for enemy in self.enemies):
-            self.result = "victory"
-            total_xp = sum(enemy.xp_reward for enemy in self.enemies)
-            total_gold = sum(enemy.gold_reward for enemy in self.enemies)
-            for member in self.party.active_members():
-                if hasattr(member, "gain_xp"):
-                    member.gain_xp(total_xp)
-            if self.party.leader is not None:
-                self.party.leader.gold += total_gold
-            self._log(f"Victoire. +{total_xp} XP, +{total_gold} or.")
-
-    def _sides_for(self, combatant: Combatant) -> tuple[list[Combatant], list[Combatant]]:
-        if combatant in self.enemies:
-            return self.enemies, list(self.party.active_members())
-        return list(self.party.active_members()), self.enemies
-
-    def _resolve_attack(self, actor: Combatant, target: Combatant) -> None:
-        # L'UI affiche ce calcul comme un simple message de combat.
-        # On garde la règle actuelle: attaque brute moins défense.
-        damage = max(1, self._attack_value(actor) - self._defense_value(target))
-        dealt = target.take_damage(damage)
-        self._log(f"{actor.name} attaque {target.name} pour {dealt} dégâts.")
-        self._check_outcome()
-
-    def _auto_play_until_player(self) -> None:
-        while self.result is None:
-            actor = self._current_actor()
-            if actor is None:
-                return
-            if not actor.is_alive():
-                self._advance_turn()
-                continue
-            if isinstance(actor, Player):
-                return
-
-            allies, enemies = self._sides_for(actor)
-            action = actor.choose_action(allies, enemies)
-            if action.kind == "attack" and action.target is not None:
-                self._resolve_attack(actor, action.target)
-            elif action.kind == "defend":
-                self._log(f"{actor.name} se met en garde.")
-            else:
-                self._log(f"{actor.name} passe son tour.")
-            if self.result is not None:
-                return
-            self._advance_turn()
-
-    def player_attack(self, target: Combatant) -> None:
-        leader = self.party.leader
-        if leader is None or not leader.is_alive() or self.result is not None:
-            return
-        self._resolve_attack(leader, target)
-        if self.result is None:
-            self._advance_turn()
-            self._auto_play_until_player()
-
-    def flee(self) -> None:
-        if self.result is None:
-            self.result = "flee"
-            self._log("Le groupe prend la fuite.")
-
-    @property
-    def current_actor(self) -> Combatant | None:
-        return self._current_actor()
-
-    @property
-    def enemy_sprite_path(self) -> str | None:
-        for meta in self.enemy_meta:
-            sprite = meta.get("sprite")
-            if sprite:
-                return str(ROOT_DIR / "data" / sprite)
-        return None
-
-
 class PygameApp:
     def __init__(self) -> None:
         pygame.init()
@@ -254,6 +119,7 @@ class PygameApp:
         self.state = "main_menu"
         self.party: Party | None = None
         self.location: str | None = None
+        self.selected_region_id: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
         # Message court pour confirmer une action d'équipement ou de retrait.
@@ -268,56 +134,32 @@ class PygameApp:
         self.ui_sheet_cache: dict[str, pygame.Surface] = {}
         self.ui_manifest_cache: dict[str, list[dict[str, Any]]] = {}
         self.sprite_cache: dict[tuple[str, tuple[int, int]], pygame.Surface] = {}
-        self.enemy_catalog = self._load_catalog(DATA_DIR / "enemies.json")
-        self.item_catalog = self._load_catalog(DATA_DIR / "items.json")
-        self.weapon_catalog = self._load_catalog(DATA_DIR / "weapons.json")
-        self.armor_catalog = self._load_catalog(DATA_DIR / "armor.json")
-        self.pet_catalog = self._load_catalog(DATA_DIR / "pets.json")
-        self.quest_catalog = self._load_catalog(DATA_DIR / "quests.json")
-        self.title_catalog = self._load_catalog(DATA_DIR / "titles.json")
-        self.merchant_catalog = self._load_catalog(DATA_DIR / "merchants.json")
-        self.merchant_stock: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
+        self.catalogs = Catalogs(DATA_DIR)
+        self.enemy_catalog = self.catalogs.enemies
+        self.item_catalog = self.catalogs.items
+        self.weapon_catalog = self.catalogs.weapons
+        self.armor_catalog = self.catalogs.armors
+        self.pet_catalog = self.catalogs.pets
+        self.quest_catalog = self.catalogs.quests
+        self.title_catalog = self.catalogs.titles
+        self.region_catalog = self.catalogs.regions
+        self.merchant_catalog = self.catalogs.merchants
+        self.merchant_stock = self.catalogs.merchant_stock()
         self.selected_merchant_id: str | None = None
-        self._reset_merchant_stock()
         self.progression: dict[str, Any] = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
             "titles": {},
         }
+        self.inventory_manager = InventoryManager(self.pet_catalog)
+        self.progression_manager = ProgressionManager(self.quest_catalog, self.title_catalog)
+        self._bind_managers()
         self.running = True
 
-    def _load_catalog(self, path: Path) -> dict[str, dict]:
-        if not path.exists():
-            return {}
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return {entry["id"]: entry for entry in data if isinstance(entry, dict) and "id" in entry}
-
-    def _resolve_catalog_item(self, item_id: str | None) -> dict[str, Any] | None:
-        # Convertit un identifiant d'objet en entrée JSON complète.
-        if item_id is None:
-            return None
-        return (
-            self.item_catalog.get(item_id)
-            or self.weapon_catalog.get(item_id)
-            or self.armor_catalog.get(item_id)
-            or self.pet_catalog.get(item_id)
-        )
-
-    def _reset_merchant_stock(self) -> None:
-        # Le stock vivant est séparé du catalogue pour que les achats diminuent
-        # réellement les quantités pendant la partie.
-        self.merchant_stock = {}
-        for merchant_id, merchant in self.merchant_catalog.items():
-            stock: dict[str, dict[str, dict[str, int]]] = {}
-            for category, entries in merchant.get("inventory", {}).items():
-                stock[category] = {}
-                for item_id, values in entries.items():
-                    values = values if isinstance(values, dict) else dict(zip(values[::2], values[1::2]))
-                    stock[category][item_id] = {
-                        "cost": int(values.get("cost", 0)),
-                        "quantity": int(values.get("quantity", 0)),
-                    }
-            self.merchant_stock[merchant_id] = stock
+    def _bind_managers(self) -> None:
+        self.inventory_manager.bind(self.party, self.inventory)
+        self.inventory_manager.selected_member_index = self.selected_member_index
+        self.progression_manager.bind(self.party, self.inventory, self.progression)
 
     def _selected_merchant(self) -> dict[str, Any] | None:
         if self.selected_merchant_id is None:
@@ -334,7 +176,7 @@ class PygameApp:
         stock = self.merchant_stock.get(self.selected_merchant_id or "", {})
         for category, entries in stock.items():
             for item_id, values in entries.items():
-                item = self._resolve_catalog_item(item_id)
+                item = self.catalogs.resolve_item(item_id)
                 quantity = int(values.get("quantity", 0))
                 cost = int(values.get("cost", 0))
                 label = item.get("name", item_id) if item else f"Objet inconnu ({item_id})"
@@ -354,7 +196,7 @@ class PygameApp:
         if len(parts) != 2 or self.selected_merchant_id is None:
             return
         category, item_id = parts
-        item = self._resolve_catalog_item(item_id)
+        item = self.catalogs.resolve_item(item_id)
         entry = self.merchant_stock.get(self.selected_merchant_id, {}).get(category, {}).get(item_id)
         leader = self.party.leader if self.party else None
         if item is None or entry is None or leader is None:
@@ -373,56 +215,19 @@ class PygameApp:
         self.status_feedback = f"{item.get('name', item_id)} acheté."
 
     def _item_label(self, item: object | None) -> str:
-        # Nom lisible d'un objet, quel que soit son type concret.
-        if item is None:
-            return "Aucun"
-        if isinstance(item, dict):
-            return str(item.get("name", item.get("id", "Inconnu")))
-        return str(getattr(item, "name", getattr(item, "id", "Inconnu")))
+        return self.inventory_manager.item_label(item)
 
     def _item_slot(self, item: object | None) -> str:
-        # Le slot dit où l'objet peut être porté: weapon, helmet, chest, etc.
-        if item is None:
-            return ""
-        if isinstance(item, dict):
-            return str(item.get("slot", ""))
-        return str(getattr(item, "slot", ""))
+        return self.inventory_manager.item_slot(item)
 
     def _item_id(self, item: object | None) -> str | None:
-        if item is None:
-            return None
-        if isinstance(item, dict):
-            return item.get("id")
-        return getattr(item, "id", None)
+        return self.inventory_manager.item_id(item)
 
     def _item_stat(self, item: object, *names: str) -> object | None:
-        if isinstance(item, dict):
-            for name in names:
-                if name in item:
-                    return item[name]
-            return None
-        for name in names:
-            value = getattr(item, name, None)
-            if value is not None:
-                return value
-        return None
+        return self.inventory_manager.item_stat(item, *names)
 
     def _item_details(self, item: object) -> list[str]:
-        details: list[str] = []
-        stat_labels = (
-            ("ATQ", ("attack_bonus", "damage")),
-            ("DEF", ("defense_bonus", "defense")),
-            ("PV", ("health", "max_health")),
-            ("Vitesse", ("speed",)),
-            ("Niveau requis", ("level_required", "required_level")),
-            ("Rareté", ("rarity",)),
-            ("Effet", ("effect",)),
-        )
-        for label, names in stat_labels:
-            value = self._item_stat(item, *names)
-            if value is not None:
-                details.append(f"{label}: {value}")
-        return details
+        return self.inventory_manager.item_details(item)
 
     def _item_sprite_path(self, item: object | None) -> str | None:
         # Priorité au sprite déclaré dans le JSON, sinon on prend un fallback existant.
@@ -473,7 +278,7 @@ class PygameApp:
 
     def _item_from_stock(self, item_id: str | None) -> object | None:
         # Convertit un id du stock sauvegardé en objet affichable/équipable.
-        entry = self._resolve_catalog_item(item_id)
+        entry = self.catalogs.resolve_item(item_id)
         if entry is None:
             return None
         return SimpleNamespace(**entry)
@@ -493,172 +298,41 @@ class PygameApp:
         return image
 
     def _is_weapon(self, item: object | None) -> bool:
-        # Les armes de ce projet utilisent le slot "weapon".
-        if item is None:
-            return False
-        if isinstance(item, dict):
-            return item.get("slot") == "weapon" or ("damage" in item and not item.get("slot"))
-        return getattr(item, "slot", "") == "weapon" or (hasattr(item, "damage") and not getattr(item, "slot", None))
+        return self.inventory_manager.is_weapon(item)
 
     def _selected_member(self) -> Combatant | None:
-        # Personnage actif dans l'écran statut: c'est lui dont on affiche
-        # et modifie l'équipement quand on clique sur les colonnes de droite.
-        if self.party is None or not self.party.members:
-            return None
-        if not 0 <= self.selected_member_index < len(self.party.members):
-            self.selected_member_index = 0
-        return self.party.members[self.selected_member_index]
+        self.inventory_manager.selected_member_index = self.selected_member_index
+        return self.inventory_manager.selected_member()
 
     def _equip_item(self, item: object | None) -> None:
-        # Remplace l'équipement du slot et remet l'ancien objet dans le stock commun.
-        player = self._selected_member()
-        if player is None or item is None:
-            return
-
-        item_id = self._item_id(item)
-        if item_id is None:
-            return
-
-        if item in player.inventory:
-            player.inventory.remove(item)
-
-        slot = self._item_slot(item)
-
-        if self._is_pet(item):
-            if player.pet is not None:
-                self._add_shared_item(player.pet)
-            player.equip_pet(item)
-            self.status_feedback = f"{self._item_label(item)} équipé."
-            return
-
-        if self._is_weapon(item):
-            if player.weapon_primary is None:
-                player.equip_weapon(item)
-                slot_label = "arme principale"
-            elif player.weapon_secondary is None:
-                player.equip_weapon_secondary(item)
-                slot_label = "arme secondaire"
-            else:
-                self._add_shared_item(player.weapon_primary)
-                player.equip_weapon(item)
-                slot_label = "arme principale"
-            self.status_feedback = f"{self._item_label(item)} équipé en {slot_label}."
-            return
-
-        if slot == "helmet":
-            if player.helmet is not None:
-                self._add_shared_item(player.helmet)
-            player.equip_helmet(None)
-            player.equip_helmet(item)
-        elif slot == "chest":
-            if player.chest is not None:
-                self._add_shared_item(player.chest)
-            player.equip_chest(None)
-            player.equip_chest(item)
-        elif slot == "legs":
-            if player.legs is not None:
-                self._add_shared_item(player.legs)
-            player.equip_legs(None)
-            player.equip_legs(item)
-        elif slot == "boots":
-            if player.boots is not None:
-                self._add_shared_item(player.boots)
-            player.equip_boots(None)
-            player.equip_boots(item)
-        elif slot == "arms":
-            if player.arms is not None:
-                self._add_shared_item(player.arms)
-            player.equip_arms(None)
-            player.equip_arms(item)
-        else:
-            self.status_feedback = "Cet objet ne peut pas être équipé."
-            return
-
-        self.status_feedback = f"{self._item_label(item)} équipé."
+        self.inventory_manager.selected_member_index = self.selected_member_index
+        feedback = self.inventory_manager.equip_item(item)
+        if feedback is not None:
+            self.status_feedback = feedback
 
     def _consume_stock_item(self, item: object) -> bool:
-        item_id = self._item_id(item)
-        if item_id is None:
-            return False
-        category = self._shared_category(item)
-        entries = self.inventory.get(category, {})
-        quantity = int(entries.get(item_id, 0))
-        if quantity <= 0:
-            return False
-        if quantity == 1:
-            del entries[item_id]
-        else:
-            entries[item_id] = quantity - 1
-        return True
+        return self.inventory_manager.consume_stock_item(item)
 
     def _shared_category(self, item: object) -> str:
-        if self._is_pet(item):
-            return "pets"
-        return "weapons" if self._is_weapon(item) else "armors" if self._item_slot(item) else "items"
+        return self.inventory_manager.shared_category(item)
 
     def _add_shared_item(self, item: object | None) -> None:
-        item_id = self._item_id(item)
-        if item_id is None:
-            return
-        category = self._shared_category(item)
-        entries = self.inventory.setdefault(category, {})
-        entries[item_id] = int(entries.get(item_id, 0)) + 1
+        self.inventory_manager.add_shared_item(item)
 
     def _merge_member_inventories(self) -> None:
-        if self.party is None:
-            return
-        for member in self.party.members:
-            for item in member.inventory:
-                self._add_shared_item(item)
-            member.inventory.clear()
+        self.inventory_manager.merge_member_inventories()
 
     def _is_equippable(self, item: object) -> bool:
-        return self._is_pet(item) or self._is_weapon(item) or self._item_slot(item) in {
-            "helmet", "chest", "legs", "boots", "arms"
-        }
+        return self.inventory_manager.is_equippable(item)
 
     def _is_pet(self, item: object | None) -> bool:
-        return self._item_id(item) in self.pet_catalog
+        return self.inventory_manager.is_pet(item)
 
     def _unequip_slot(self, slot: str) -> None:
-        # Cliquer sur un slot équipé le remet simplement dans l'inventaire
-        # du personnage actuellement sélectionné.
-        player = self._selected_member()
-        if player is None:
-            return
-
-        if slot == "weapon_primary" and player.weapon_primary is not None:
-            self._add_shared_item(player.weapon_primary)
-            player.equip_weapon(None)
-            self.status_feedback = "Arme principale retirée."
-        elif slot == "weapon_secondary" and player.weapon_secondary is not None:
-            self._add_shared_item(player.weapon_secondary)
-            player.equip_weapon_secondary(None)
-            self.status_feedback = "Arme secondaire retirée."
-        elif slot == "helmet" and player.helmet is not None:
-            self._add_shared_item(player.helmet)
-            player.equip_helmet(None)
-            self.status_feedback = "Tête retirée."
-        elif slot == "chest" and player.chest is not None:
-            self._add_shared_item(player.chest)
-            player.equip_chest(None)
-            self.status_feedback = "Torse retiré."
-        elif slot == "legs" and player.legs is not None:
-            self._add_shared_item(player.legs)
-            player.equip_legs(None)
-            self.status_feedback = "Jambes retirées."
-        elif slot == "boots" and player.boots is not None:
-            self._add_shared_item(player.boots)
-            player.equip_boots(None)
-            self.status_feedback = "Bottes retirées."
-        elif slot == "arms" and player.arms is not None:
-            self._add_shared_item(player.arms)
-            player.equip_arms(None)
-            self.status_feedback = "Bras retirés."
-        elif slot == "pet" and player.pet is not None:
-            self._add_shared_item(player.pet)
-            player.equip_pet(None)
-            self.status_feedback = "Compagnon retiré."
+        self.inventory_manager.selected_member_index = self.selected_member_index
+        feedback = self.inventory_manager.unequip_slot(slot)
+        if feedback is not None:
+            self.status_feedback = feedback
 
     def _status_member_buttons(self) -> list[Button]:
         # Colonne gauche de l'écran statut: un bouton par membre du groupe,
@@ -920,6 +594,10 @@ class PygameApp:
             self._handle_buttons(position, self._main_menu_buttons())
         elif self.state == "exploration":
             self._handle_buttons(position, self._exploration_buttons())
+        elif self.state == "regions":
+            self._handle_buttons(position, self._region_buttons())
+        elif self.state == "zones":
+            self._handle_buttons(position, self._zone_buttons())
         elif self.state == "status":
             self._handle_status_click(position)
         elif self.state == "battle":
@@ -947,6 +625,27 @@ class PygameApp:
             self._save_game()
         elif action == "encounter":
             self._start_battle()
+        elif action == "regions":
+            self.state = "regions"
+        elif action.startswith("select_region:"):
+            region_id = action.split(":", 1)[1]
+            if region_id in self.region_catalog:
+                self.selected_region_id = region_id
+                self.state = "zones"
+        elif action.startswith("zone:"):
+            zone_id = action.split(":", 1)[1]
+            region = self.region_catalog.get(self.selected_region_id or "", {})
+            zone_ids = {zone.get("id") for zone in region.get("zones", [])}
+            if zone_id in zone_ids:
+                self.location = zone_id
+                self.state = "exploration"
+                self.status_feedback = ""
+        elif action.startswith("region:"):
+            # Compatibilité avec les anciennes actions de navigation.
+            region_id = action.split(":", 1)[1]
+            if region_id in self.region_catalog:
+                self.location = region_id
+                self.status_feedback = ""
         elif action == "shop":
             self.state = "shop"
             self.selected_merchant_id = None
@@ -993,52 +692,38 @@ class PygameApp:
                 self.battle.flee()
             self.state = "exploration"
 
-    def _handle_battle_click(self, position: tuple[int, int]) -> None:
-        if self.battle is None:
-            return
-        if self.battle.result is not None:
-            self._handle_buttons(position, self._battle_result_buttons())
-            return
-        actor = self.battle.current_actor
-        if actor is None or not isinstance(actor, Player):
-            return
-        for enemy, rect in self._battle_enemy_rects():
-            if rect.collidepoint(position):
-                self.battle.player_attack(enemy)
-                if self.battle.result is not None:
-                    self.state = "battle"
-                return
-
-        self._handle_buttons(position, self._battle_action_buttons())
-
     def _new_game(self) -> None:
         self.party = self.core._new_party()
-        self.location = None
+        self.location = "village"
+        self.selected_region_id = "greenlands"
         self.inventory = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.progression = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
             "titles": {},
         }
-        self._reset_merchant_stock()
+        self.merchant_stock = self.catalogs.merchant_stock()
         self.selected_merchant_id = None
+        self.selected_member_index = 0
+        self._bind_managers()
         self.core.progression = self.progression
         self._update_titles()
         self.battle = None
-        self.selected_member_index = 0
         self.state = "exploration"
 
     def _load_game(self) -> None:
         self.core.party, loaded_state = self.core._load_progress()
         self.party = self.core.party
         self.location = self.core.location
+        self.selected_region_id = self._region_for_zone(self.location)
         self.inventory = self.core.inventory
+        self.progression = self.core.progression
+        self.selected_member_index = 0
+        self._bind_managers()
         self._merge_member_inventories()
         self.battle = None
-        self.selected_member_index = 0
         self.selected_merchant_id = None
         self.state = "game_over" if loaded_state == GameState.GAME_OVER else "exploration"
-        self.progression = self.core.progression
         self._update_titles()
 
     def _save_game(self) -> None:
@@ -1055,8 +740,17 @@ class PygameApp:
     def _start_battle(self) -> None:
         if self.party is None:
             return
-        enemy = Enemy.from_id("goblin")
-        enemy_meta = [self.enemy_catalog.get("goblin", {})]
+        zone = self._zone_for_id(self.location or "village") or {}
+        enemy_ids = [
+            enemy_id
+            for enemy_id in zone.get("enemies", ["goblin"])
+            if enemy_id in self.enemy_catalog
+        ]
+        if not enemy_ids:
+            enemy_ids = ["goblin"]
+        enemy_id = random.choice(enemy_ids)
+        enemy = Enemy.from_id(enemy_id)
+        enemy_meta = [self.enemy_catalog.get(enemy_id, {})]
         self.battle = Battle(self.party, [enemy], enemy_meta)
         self.state = "battle"
         self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0))
@@ -1069,6 +763,10 @@ class PygameApp:
             self._draw_main_menu()
         elif self.state == "exploration":
             self._draw_exploration()
+        elif self.state == "regions":
+            self._draw_regions()
+        elif self.state == "zones":
+            self._draw_zones()
         elif self.state == "status":
             self._draw_status()
         elif self.state == "shop":
@@ -1155,6 +853,7 @@ class PygameApp:
     def _exploration_buttons(self) -> list[Button]:
         # Colonne gauche de l'écran exploration: actions de progression.
         return [
+            Button("Régions", pygame.Rect(800, 200, 320, 48), "regions", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Rencontre", pygame.Rect(800, 255, 320, 48), "encounter", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Boutique", pygame.Rect(800, 309, 320, 48), "shop", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Tableau des quêtes", pygame.Rect(800, 363, 320, 48), "quests", sprite_theme="freefantasy", sprite_id="ff_002"),
@@ -1163,6 +862,47 @@ class PygameApp:
             Button("Sauvegarder", pygame.Rect(800, 525, 320, 48), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Sauvegarder et quitter", pygame.Rect(800, 579, 320, 48), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
+
+    def _region_for_zone(self, zone_id: str | None) -> str | None:
+        if zone_id is None:
+            return None
+        for region_id, region in self.region_catalog.items():
+            if any(zone.get("id") == zone_id for zone in region.get("zones", [])):
+                return region_id
+        return None
+
+    def _zone_for_id(self, zone_id: str) -> dict[str, Any] | None:
+        for region in self.region_catalog.values():
+            for zone in region.get("zones", []):
+                if zone.get("id") == zone_id:
+                    return zone
+        return None
+
+    def _region_buttons(self) -> list[Button]:
+        buttons = [Button("Retour", pygame.Rect(1035, 610, 150, 48), "back")]
+        for index, region in enumerate(self.region_catalog.values()):
+            buttons.append(
+                Button(
+                    str(region.get("name", region["id"])),
+                    pygame.Rect(140, 190 + index * 90, 980, 62),
+                    f"select_region:{region['id']}",
+                )
+            )
+        return buttons
+
+    def _zone_buttons(self) -> list[Button]:
+        region = self.region_catalog.get(self.selected_region_id or "", {})
+        buttons = [Button("Retour", pygame.Rect(1035, 610, 150, 48), "regions")]
+        for index, zone in enumerate(region.get("zones", [])):
+            buttons.append(
+                Button(
+                    str(zone.get("name", zone["id"])),
+                    pygame.Rect(140, 190 + index * 90, 980, 62),
+                    f"zone:{zone['id']}",
+                    enabled=zone["id"] != self.location,
+                )
+            )
+        return buttons
 
     def _status_buttons(self) -> list[Button]:
         # Petit bouton de retour en bas à droite de l'écran de statut.
@@ -1211,94 +951,23 @@ class PygameApp:
         return [Button("Retour", TITLES_BACK_BUTTON_RECT, "back")]
 
     def _condition_progress(self, condition: dict[str, Any]) -> tuple[int, int]:
-        condition_type = str(condition.get("type", ""))
-        target = int(condition.get("target", 1))
-        stats = self.progression.setdefault("stats", {})
-        if condition_type == "victories":
-            current = int(stats.get("victories", 0))
-        elif condition_type == "gold_earned":
-            current = int(stats.get("gold_earned", 0))
-        elif condition_type == "quests_completed":
-            current = int(stats.get("quests_completed", 0))
-        elif condition_type == "level":
-            leader = self.party.leader if self.party else None
-            current = int(getattr(leader, "level", 0))
-        else:
-            current = 0
-        return min(current, target), target
+        return self.progression_manager.condition_progress(condition)
 
     def _conditions_met(self, conditions: list[dict[str, Any]] | dict[str, Any]) -> bool:
-        if isinstance(conditions, dict):
-            conditions = [conditions]
-        return all(current >= target for current, target in (self._condition_progress(condition) for condition in conditions))
+        return self.progression_manager.conditions_met(conditions)
 
     def _quest_status(self, quest_id: str) -> str:
-        quests = self.progression.setdefault("quests", {"active": [], "completed": [], "claimed": []})
-        if quest_id in quests.get("claimed", []):
-            return "claimed"
-        quest = self.quest_catalog.get(quest_id, {})
-        if quest_id in quests.get("active", []):
-            return "claimable" if self._conditions_met(quest.get("conditions", {})) else "active"
-        return "available"
+        return self.progression_manager.quest_status(quest_id)
 
     def _claim_quest(self, quest_id: str) -> None:
-        quest = self.quest_catalog.get(quest_id)
-        if quest is None or self._quest_status(quest_id) != "claimable":
-            return
-        rewards = quest.get("rewards", {})
-        leader = self.party.leader if self.party else None
-        if leader is not None:
-            leader.gold += int(rewards.get("gold", 0))
-            if rewards.get("xp"):
-                leader.gain_xp(int(rewards["xp"]))
-        for category in ("items", "weapons", "armors", "pets"):
-            self.inventory.setdefault(category, {})
-            for item_id, quantity in rewards.get(category, {}).items():
-                self.inventory[category][item_id] = self.inventory[category].get(item_id, 0) + int(quantity)
-        quests_state = self.progression["quests"]
-        quests_state["active"].remove(quest_id)
-        quests_state.setdefault("completed", []).append(quest_id)
-        quests_state.setdefault("claimed", []).append(quest_id)
-        self.progression["stats"]["quests_completed"] = int(self.progression["stats"].get("quests_completed", 0)) + 1
-        self._update_titles()
+        feedback = self.progression_manager.claim_quest(quest_id)
+        if feedback is not None:
+            self.status_feedback = feedback
 
     def _update_titles(self) -> None:
-        titles = self.progression.setdefault("titles", {})
-        for title in self.title_catalog.values():
-            title_id = str(title["id"])
-            previous_state = titles.get(title_id, {})
-            conditions = title.get("conditions", {})
-            progress = [self._condition_progress(condition) for condition in (conditions if isinstance(conditions, list) else [conditions])]
-            titles[title_id] = {
-                "progress": [{"current": current, "target": target} for current, target in progress],
-                "unlocked": all(current >= target for current, target in progress),
-                "reward_claimed": bool(previous_state.get("reward_claimed", False)),
-            }
-            self._claim_title_reward(title, titles[title_id])
-
-    def _claim_title_reward(self, title: dict[str, Any], title_state: dict[str, Any]) -> None:
-        if not title_state.get("unlocked") or title_state.get("reward_claimed"):
-            return
-        reward = title.get("reward", {})
-        if reward.get("type") != "companion" or self.party is None:
-            return
-        companion_id = str(reward.get("id", title.get("id", "companion")))
-        if any(getattr(companion, "reward_id", None) == companion_id for companion in self.party.companions):
-            title_state["reward_claimed"] = True
-            return
-
-        companion = Companion(
-            name=str(reward.get("name", "Compagnon")),
-            max_hp=int(reward.get("max_hp", 20)),
-            attack=int(reward.get("attack", 3)),
-            defense=int(reward.get("defense", 1)),
-            speed=int(reward.get("speed", 1)),
-            role=str(reward.get("role", "attacker")),
-        )
-        companion.reward_id = companion_id
-        self.party.recruit(companion)
-        title_state["reward_claimed"] = True
-        self.status_feedback = f"{companion.name} rejoint votre groupe."
+        feedback = self.progression_manager.update_titles()
+        if feedback is not None:
+            self.status_feedback = feedback
 
     def _game_over_buttons(self) -> list[Button]:
         # Unique appel à l'action après la défaite: revenir au menu.
@@ -1340,8 +1009,13 @@ class PygameApp:
         self._draw_panel(pygame.Rect(660, 60, 570, 620), PANEL_2)
         self._draw_text("Exploration", (95, 100), self.font_big, ACCENT)
         self._draw_text("Le groupe avance dans les terres hostiles.", (95, 150), self.font, MUTED)
+        zone = self._zone_for_id(self.location or "village") or {}
+        region_id = self._region_for_zone(self.location)
+        region = self.region_catalog.get(region_id or "", {})
+        self._draw_text(f"Région: {region.get('name', 'Inconnue')}", (95, 190), self.font, ACCENT_2)
+        self._draw_text(f"Zone: {zone.get('name', self.location or 'Village')}", (95, 225), self.font, ACCENT_2)
         gold = self.party.leader.gold if self.party and self.party.leader else 0
-        self._draw_text(f"Or: {gold}", (130, 230), self.font, SUCCESS)
+        self._draw_text(f"Or: {gold}", (95, 260), self.font, SUCCESS)
         self._draw_buttons(self._exploration_buttons())
         self._draw_party_summary((125, 270))
 
@@ -1349,6 +1023,19 @@ class PygameApp:
         # n'est en cours (il ne servait qu'à occuper l'espace avant une rencontre).
         self._draw_centered_text("Prêt à explorer", (945, 205), self.font_big, ACCENT_2)
         self._draw_centered_text("Clique sur Rencontre pour lancer un combat.", (945, 250), self.font_small, MUTED)
+
+    def _draw_regions(self) -> None:
+        self._draw_panel(pygame.Rect(70, 55, 1140, 610), PANEL)
+        self._draw_text("Régions", (115, 82), self.font_big, ACCENT)
+        self._draw_text("Choisis une région pour afficher ses zones.", (115, 135), self.font_small, MUTED)
+        self._draw_buttons(self._region_buttons())
+
+    def _draw_zones(self) -> None:
+        region = self.region_catalog.get(self.selected_region_id or "", {})
+        self._draw_panel(pygame.Rect(70, 55, 1140, 610), PANEL)
+        self._draw_text(str(region.get("name", "Région")), (115, 82), self.font_big, ACCENT)
+        self._draw_text(str(region.get("description", "Choisis une zone.")), (115, 135), self.font_small, MUTED)
+        self._draw_buttons(self._zone_buttons())
 
     def _draw_status(self) -> None:
         # L'écran statut est découpé en trois zones:

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "greenlands",
+    "name": "Terres verdoyantes",
+    "description": "Les terres proches du village, entre chemins et forêts.",
+    "zones": [
+      {
+        "id": "village",
+        "name": "Village",
+        "description": "Les alentours du village.",
+        "enemies": ["goblin"]
+      },
+      {
+        "id": "forest",
+        "name": "Forêt sombre",
+        "description": "Une forêt dense où rôdent des créatures hostiles.",
+        "enemies": ["goblin", "skeleton"]
+      }
+    ]
+  },
+  {
+    "id": "forgotten_depths",
+    "name": "Profondeurs oubliées",
+    "description": "Des lieux souterrains où les morts ne restent pas au repos.",
+    "zones": [
+      {
+        "id": "crypt",
+        "name": "Crypte oubliée",
+        "description": "Des couloirs froids hantés par les morts.",
+        "enemies": ["skeleton"]
+      }
+    ]
+  }
+]

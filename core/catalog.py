@@ -37,6 +37,27 @@ class Catalogs:
             return None
         return self.items.get(item_id) or self.weapons.get(item_id) or self.armors.get(item_id) or self.pets.get(item_id)
 
+    def region_for_zone(self, zone_id: str | None) -> str | None:
+        if zone_id is None:
+            return None
+        for region_id, region in self.regions.items():
+            if any(zone.get("id") == zone_id for zone in region.get("zones", [])):
+                return region_id
+        return None
+
+    def zone_for_id(self, zone_id: str | None) -> dict[str, Any] | None:
+        if zone_id is None:
+            return None
+        for region in self.regions.values():
+            for zone in region.get("zones", []):
+                if zone.get("id") == zone_id:
+                    return zone
+        return None
+
+    def zone_belongs_to_region(self, region_id: str | None, zone_id: str) -> bool:
+        region = self.regions.get(region_id or "", {})
+        return any(zone.get("id") == zone_id for zone in region.get("zones", []))
+
     def merchant_stock(self) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
         stock_by_merchant: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
         for merchant_id, merchant in self.merchants.items():

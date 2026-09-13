@@ -9,7 +9,7 @@
       "defense": 8,
       "speed": 10,
       "level": 1,
-      "xp": 4,
+      "xp": 5,
       "gold": 0,
       "weapon_primary": "fire_staff",
       "weapon_secondary": null,
@@ -64,7 +64,7 @@
   },
   "progression": {
     "stats": {
-      "victories": 0,
+      "victories": 1,
       "gold_earned": 0,
       "quests_completed": 0
     },
@@ -80,7 +80,7 @@
       "goblin_killer": {
         "progress": [
           {
-            "current": 0,
+            "current": 1,
             "target": 10
           }
         ],

@@ -107,9 +107,9 @@ class Ally(Combatant):
 
     # ---- Progression ---------------------------------------------
     def gain_xp(self, amount: int) -> None:
-        self.xp += amount
-        # Le vrai calcul de palier reste dans progression/level_manager.py
-        # (check_level_up(self)) pour ne pas dupliquer la logique ici.
+        from progression.level_manager import LevelManager
+
+        LevelManager().add_xp(self, amount)
 
     # choose_action() reste abstrait : Player (input utilisateur)
     # et Companion (IA) l'implémentent chacun à leur façon.

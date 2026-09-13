@@ -36,6 +36,8 @@ class Battle:
         self.turn_index = 0
         self.messages: deque[str] = deque(maxlen=7)
         self.result: str | None = None
+        self.loot: list[str] = []
+        self.loot_collected = False
         self._rebuild_turn_order()
         self._auto_play_until_player()
 
@@ -78,6 +80,8 @@ class Battle:
         self.messages.append(message)
 
     def _check_outcome(self) -> None:
+        if self.result is not None:
+            return
         if not any(member.is_alive() for member in self.party.active_members()):
             self.result = "defeat"
             self._log("Le groupe a été vaincu.")
@@ -91,6 +95,7 @@ class Battle:
                     member.gain_xp(total_xp)
             if self.party.leader is not None:
                 self.party.leader.gold += total_gold
+            self.loot = [item_id for enemy in self.enemies for item_id in enemy.roll_loot()]
             self._log(f"Victoire. +{total_xp} XP, +{total_gold} or.")
 
     def _sides_for(self, combatant: Combatant) -> tuple[list[Combatant], list[Combatant]]:
@@ -181,6 +186,10 @@ class Battle:
                     self._resolve_skill(leader, enemy, skill)
         else:
             self._resolve_skill(leader, target, skill)
+        self._finish_player_action()
+
+    def finish_player_action(self) -> None:
+        """Avance le tour après une action validée par un service externe."""
         self._finish_player_action()
 
     def flee(self) -> None:

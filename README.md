@@ -54,7 +54,7 @@ Exploration -> Régions -> Zones -> Exploration
 
 Une rencontre choisit un ennemi parmi ceux configurés pour la zone. Le combat
 est géré par [core/battle.py](core/battle.py) et présenté par
-[core/gui.py](core/gui.py).
+[ui/battle.py](ui/battle.py).
 
 Le système actuel :
 
@@ -67,6 +67,8 @@ Le système actuel :
 - permet de fuir ;
 - calcule les dégâts à partir de l'attaque et de la défense ;
 - attribue l'expérience et l'or en cas de victoire ;
+- applique les montées de niveau et les bonus de statistiques liés à l'XP ;
+- tire les drops configurés par l'ennemi et les ajoute à l'inventaire partagé ;
 - affiche la victoire, la défaite ou la fuite.
 
 Les ennemis sont décrits dans [data/enemies.json](data/enemies.json) et
@@ -79,9 +81,9 @@ stock. Les quantités diminuent pendant la partie et les achats sont ajoutés à
 l'inventaire partagé du groupe.
 
 Les données des marchands se trouvent dans
-[data/merchants.json](data/merchants.json). Le stock en cours n'est pas encore
-sérialisé dans la sauvegarde : il est reconstruit depuis le catalogue au
-lancement de l'application.
+[data/merchants.json](data/merchants.json). Le stock courant est sauvegardé
+avec la partie et restauré lors du chargement. Une nouvelle partie repart du
+stock défini dans le catalogue.
 
 ### État du groupe et équipement
 
@@ -90,12 +92,17 @@ L'écran d'état permet de :
 - sélectionner un membre du groupe ;
 - voir ses statistiques ;
 - consulter l'équipement porté ;
-- retirer une arme, une pièce d'armure ou un compagnon ;
+- retirer une arme, une pièce d'armure ou un familier ;
 - équiper un objet depuis l'inventaire partagé.
 
 Les règles métier sont regroupées dans
 [core/inventory.py](core/inventory.py). Les objets équipables utilisent les
-emplacements `weapon`, `helmet`, `chest`, `legs`, `boots`, `arms` et `pet`.
+emplacements `weapon`, `helmet`, `chest`, `legs`, `boots`, `arms` et `pet`
+(familier équipé).
+
+Les potions de soin peuvent être utilisées hors combat et pendant un combat.
+Elles consomment une unité de l'inventaire et restaurent les PV de la cible.
+Les modèles génériques sont définis dans [items/base.py](items/base.py).
 
 ### Quêtes et titres
 
@@ -109,7 +116,8 @@ prises en charge sont :
 - niveau du chef de groupe.
 
 Les titres suivent ces mêmes statistiques. Certains titres peuvent débloquer
-un compagnon, comme le Gardien du village.
+un compagnon, comme le Gardien du village. Les récompenses peuvent inclure de
+l'or, de l'expérience, des objets ou un compagnon.
 
 La logique correspondante se trouve dans
 [core/progression.py](core/progression.py). Les catalogues sont définis dans
@@ -137,12 +145,28 @@ que [party/party.py](party/party.py) sérialise les membres du groupe.
 ```text
 main.py                     Point d'entrée
 core/
-    gui.py                    Fenêtre pygame, écrans, événements et rendu
+    gui.py                    Boucle pygame, événements et coordination
     game.py                   État global et persistance
     battle.py                 Logique des combats sans dépendance pygame
     catalog.py                Chargement des catalogues JSON
     inventory.py              Inventaire partagé et équipement
     progression.py            Quêtes, titres et récompenses
+    shop.py                   Achats et gestion du stock marchand
+    encounter.py              Création des rencontres et combats
+ui/
+    main_menu.py              Rendu du menu principal
+    exploration.py            Rendu de l'écran d'exploration
+    regions.py                Rendu de la sélection des régions
+    zones.py                  Rendu de la sélection des zones
+    shop.py                   Rendu de la boutique
+    quests.py                 Rendu du tableau des quêtes
+    titles.py                 Rendu des titres
+    status.py                 Rendu de l'état du groupe
+    battle.py                 Rendu et interactions du combat
+    game_over.py              Rendu de la fin de partie
+    renderer.py               Rendu pygame partagé et chargement des sprites
+    widgets.py                Boutons et composants UI partagés
+    theme.py                  Palette partagée de l'interface
 entities/
     combatant.py              Classe abstraite commune aux combattants
     ally.py                   Base de Player et Companion, équipement et stats
@@ -152,9 +176,11 @@ entities/
     merchant.py               Modèle métier d'un marchand
 party/
     party.py                  Membres, actifs/réserve et sérialisation du groupe
-items/                       Réservé aux futurs modèles Python d'objets
+items/
+    base.py                   Modèles Item, Consumable et Equipment
 progression/
     generate_xp_table.py       Générateur de table d'expérience
+    level_manager.py           Calcul des paliers et bonus de niveau
     xp_table.json              Table d'expérience générée
     Saved_progress.json        Sauvegarde de la partie
 data/
@@ -168,18 +194,38 @@ data/
 
 - la boucle pygame ;
 - la gestion des clics et des transitions d'écran ;
-- la construction des boutons ;
-- le rendu des écrans ;
-- le chargement des sprites et des ressources d'interface.
+- la coordination de l'état courant, de la sauvegarde et des managers métier ;
+- les primitives de délégation entre les événements, les services et les écrans.
 
-Il délègue désormais les règles métier à des modules spécialisés afin de ne
-pas mélanger rendu et logique de jeu.
+La navigation dans les régions et les zones est fournie par `Catalogs`, et la
+création d'une rencontre est déléguée à [core/encounter.py](core/encounter.py).
+
+Les rendus, boutons, interactions d'écran et ressources graphiques sont
+délégués aux modules du package [ui](ui). Les achats sont gérés par
+[core/shop.py](core/shop.py), tandis que les règles de combat restent
+calculées par [core/battle.py](core/battle.py). `PygameApp` conserve donc la
+coordination sans porter le rendu détaillé ni la logique métier spécialisée.
 
 ### `core/catalog.py`
 
 `Catalogs` charge les fichiers JSON et expose les catalogues des ennemis,
 objets, armes, armures, familiers, quêtes, titres, régions et marchands. Il
-reconstruit également le stock initial des marchands.
+reconstruit également le stock initial des marchands et fournit les recherches
+de régions et de zones.
+
+### `core/shop.py` et `core/encounter.py`
+
+`ShopService` gère les achats, la consommation du stock et l'ajout des objets
+à l'inventaire partagé, sans dépendance à pygame. `EncounterService` construit
+un combat à partir de la zone courante et du catalogue des ennemis.
+
+### `ui/`
+
+Chaque écran pygame possède son module dédié : menu principal, exploration,
+régions, zones, boutique, quêtes, titres, statut, combat et fin de partie.
+`ui/renderer.py` centralise les panneaux, textes, boutons, sprites et
+spritesheets. `ui/widgets.py` contient les composants partagés, notamment
+`Button`, tandis que `ui/theme.py` regroupe la palette commune.
 
 ### `entities/`
 
@@ -218,19 +264,12 @@ spritesheets.
 
 ## État actuel et limites connues
 
-Le socle jouable est en place, mais plusieurs systèmes sont encore
-partiels :
+Le socle jouable et les principaux systèmes de progression sont en place. Les
+limites actuelles sont :
 
 - les compétences de soin et leurs effets persistants restent à compléter ;
-- les drops des ennemis sont décrits par `loot_table` ou `drops`, mais ne sont
-    pas encore distribués automatiquement après un combat ;
 - la boutique permet l'achat, mais pas encore la revente depuis l'interface ;
-- le stock des marchands est réinitialisé au démarrage au lieu d'être sauvé ;
-- les objets de soin existent dans les catalogues, mais leur utilisation en
-    combat ou hors combat reste à brancher ;
-- `items/` ne contient actuellement aucun module métier actif ;
-- le gain d'expérience est stocké, mais la montée de niveau complète reste à
-    connecter à la table de [progression/xp_table.json](progression/xp_table.json) ;
+- les drops dont l'identifiant est absent des catalogues sont ignorés ;
 - les effets textuels de certains titres ne modifient pas encore les règles
     de combat.
 
@@ -238,11 +277,10 @@ partiels :
 
 Les évolutions naturelles sont :
 
-1. ajouter les actions d'objet et les effets persistants au combat ;
-2. distribuer les butins et les afficher dans l'inventaire ;
-3. connecter la montée de niveau et les bonus d'équipement ;
-4. persister le stock des marchands ;
-5. extraire progressivement les écrans pygame de `core/gui.py` vers un package
-    d'interface dédié ;
-6. créer de vrais modèles dans `items/` lorsque les objets auront besoin de
-     comportements plus riches que leurs entrées JSON.
+1. Tests automatisés et sauvegardes versionnées.
+2. Guilde/Ville.
+3. Effets persistants et combat enrichi.
+4. Revente et économie.
+5. Gestion avancée du groupe.
+6. Interface, audio et polish.
+7. Simulation d’équilibrage et distribution du jeu.

@@ -34,6 +34,7 @@ class Game:
         self.party: Party | None = None
         self.location: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
+        self.merchant_stock: dict = {}
         self.progression: dict = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
@@ -44,6 +45,42 @@ class Game:
     def _new_party(self) -> Party:
         hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1)
         return Party(members=[hero])
+
+    def new_game(self) -> None:
+        """Initialise un nouvel état de jeu prêt à être présenté par l'UI."""
+        self.party = self._new_party()
+        self.state = GameState.EXPLORATION
+        self.location = "village"
+        self.inventory = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
+        self.merchant_stock = {}
+        self.progression = {
+            "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
+            "quests": {"active": [], "completed": [], "claimed": []},
+            "titles": {},
+        }
+
+    def load_game(self) -> GameState:
+        """Charge la sauvegarde et retourne l'état persistant de la partie."""
+        self.party, self.state = self._load_progress()
+        return self.state
+
+    def save_game(
+        self,
+        party: Party,
+        location: str | None,
+        inventory: dict[str, dict[str, int]],
+        progression: dict,
+        state: GameState,
+        merchant_stock: dict | None = None,
+    ) -> None:
+        """Enregistre l'état fourni par le coordinateur de l'application."""
+        self.party = party
+        self.location = location
+        self.inventory = inventory
+        self.progression = progression
+        self.merchant_stock = merchant_stock or {}
+        self.state = state
+        self._save_progress()
 
     def _save_progress(self) -> None:
         if self.party is None:
@@ -57,6 +94,7 @@ class Game:
         data["game_state"] = game_state
         data["inventory"] = self.inventory
         data["progression"] = self.progression
+        data["merchant_stock"] = self.merchant_stock
         self._write_json(GAME_SAVE_PATH, data)
 
     def _load_progress(self) -> tuple[Party, GameState]:
@@ -79,6 +117,7 @@ class Game:
         self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}, "pets": {}})
         self.inventory.setdefault("pets", {})
         self.progression = data.get("progression", self.progression)
+        self.merchant_stock = data.get("merchant_stock", {})
         try:
             state = GameState[state_name]
         except KeyError:

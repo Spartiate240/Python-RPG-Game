@@ -126,6 +126,23 @@ class InventoryManager:
             entries[item_id] = quantity - 1
         return True
 
+    def use_item(self, item: object | None, target: Any | None) -> str | None:
+        """Utilise un objet consommable sur une cible et retourne un feedback."""
+        if item is None or target is None:
+            return None
+        effect = self.item_stat(item, "effect")
+        heal_amount = self.item_stat(item, "heal")
+        if effect != "heal" or not isinstance(heal_amount, (int, float)):
+            return "Cet objet ne peut pas être utilisé."
+        if not target.is_alive():
+            return "Cette cible est hors de combat."
+        if target.hp >= target.max_hp:
+            return "Les PV de cette cible sont déjà au maximum."
+        if not self.consume_stock_item(item):
+            return "Cet objet n'est plus disponible."
+        restored = target.heal(int(heal_amount))
+        return f"{self.item_label(item)} utilisé : +{restored} PV."
+
     def merge_member_inventories(self) -> None:
         if self.party is None:
             return

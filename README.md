@@ -60,7 +60,10 @@ Le système actuel :
 
 - trie les combattants selon leur vitesse ;
 - joue automatiquement les tours des ennemis et des compagnons ;
-- permet au joueur d'attaquer un ennemi en cliquant sur sa carte ;
+- permet au joueur de choisir une attaque normale ou un skill avant de
+    sélectionner la carte ennemie ;
+- expose les skills déclarés par les armes équipées ; les skills de défense ou
+    de zone sont exécutés dès leur sélection ;
 - permet de fuir ;
 - calcule les dégâts à partir de l'attaque et de la défense ;
 - attribue l'expérience et l'or en cas de victoire ;
@@ -218,9 +221,7 @@ spritesheets.
 Le socle jouable est en place, mais plusieurs systèmes sont encore
 partiels :
 
-- les compétences sont présentes dans les données et les modèles, mais ne
-    sont pas encore proposées comme actions complètes dans l'interface de
-    combat ;
+- les compétences de soin et leurs effets persistants restent à compléter ;
 - les drops des ennemis sont décrits par `loot_table` ou `drops`, mais ne sont
     pas encore distribués automatiquement après un combat ;
 - la boutique permet l'achat, mais pas encore la revente depuis l'interface ;
@@ -237,7 +238,7 @@ partiels :
 
 Les évolutions naturelles sont :
 
-1. ajouter les actions de compétence, d'objet et de défense au combat ;
+1. ajouter les actions d'objet et les effets persistants au combat ;
 2. distribuer les butins et les afficher dans l'inventaire ;
 3. connecter la montée de niveau et les bonus d'équipement ;
 4. persister le stock des marchands ;

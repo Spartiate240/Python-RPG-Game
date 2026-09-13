@@ -118,7 +118,6 @@ def _companion_to_dict(companion: Companion) -> dict:
         "role": companion.role,
         "level": companion.level,
         "xp": companion.xp,
-        "weapon": _item_id(companion.weapon_primary),
         "weapon_primary": _item_id(companion.weapon_primary),
         "weapon_secondary": _item_id(companion.weapon_secondary),
         "helmet": _item_id(companion.helmet),
@@ -148,7 +147,7 @@ def _companion_from_dict(data: dict) -> Companion:
     if data.get("reward_id") is not None:
         companion.reward_id = data["reward_id"]
     companion.hp = data["hp"]
-    companion.weapon_primary = _resolve_item(data.get("weapon_primary", data.get("weapon")))
+    companion.weapon_primary = _resolve_item(data.get("weapon_primary"))
     companion.weapon_secondary = _resolve_item(data.get("weapon_secondary"))
     companion.helmet = _resolve_item(data.get("helmet"))
     companion.chest = _resolve_item(data.get("chest"))

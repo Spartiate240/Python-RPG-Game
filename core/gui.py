@@ -122,6 +122,8 @@ class PygameApp:
         self.selected_region_id: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
+        self.selected_battle_action = "attack"
+        self.selected_battle_skill_id: str | None = None
         # Message court pour confirmer une action d'équipement ou de retrait.
         self.status_feedback = ""
         # Personnage actuellement sélectionné dans l'écran statut (index dans party.members).
@@ -614,9 +616,10 @@ class PygameApp:
     def _handle_buttons(self, position: tuple[int, int], buttons: list[Button]) -> None:
         for button in buttons:
             if button.enabled and button.rect.collidepoint(position):
-                self._activate_button(button.action)
+                self._activate_button(button.action, button.payload)
 
-    def _activate_button(self, action: str) -> None:
+    def _activate_button(self, action: str, payload: dict[str, Any] | None = None) -> None:
+        payload = payload or {}
         if action == "new_game":
             self._new_game()
         elif action == "load_game":
@@ -691,6 +694,26 @@ class PygameApp:
             if self.battle is not None:
                 self.battle.flee()
             self.state = "exploration"
+        elif action == "select_attack":
+            self.selected_battle_action = "attack"
+            self.selected_battle_skill_id = None
+        elif action == "select_skill":
+            skill_id = payload.get("skill_id")
+            if self.battle is None or not isinstance(skill_id, str):
+                return
+            skill = next(
+                (item for item in self.battle.available_skills(self.battle.current_actor) if item.id == skill_id),
+                None,
+            )
+            if skill is None:
+                return
+            if getattr(skill, "target", "single_enemy") != "single_enemy":
+                self.battle.player_skill(skill_id)
+                self.selected_battle_action = "attack"
+                self.selected_battle_skill_id = None
+            else:
+                self.selected_battle_action = "skill"
+                self.selected_battle_skill_id = skill_id
 
     def _new_game(self) -> None:
         self.party = self.core._new_party()
@@ -751,7 +774,9 @@ class PygameApp:
         enemy_id = random.choice(enemy_ids)
         enemy = Enemy.from_id(enemy_id)
         enemy_meta = [self.enemy_catalog.get(enemy_id, {})]
-        self.battle = Battle(self.party, [enemy], enemy_meta)
+        self.battle = Battle(self.party, [enemy], enemy_meta, self.catalogs.skills)
+        self.selected_battle_action = "attack"
+        self.selected_battle_skill_id = None
         self.state = "battle"
         self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0))
         if self.battle.result is not None:
@@ -974,10 +999,22 @@ class PygameApp:
         return [Button("Menu principal", pygame.Rect(510, 385, 260, 56), "menu")]
 
     def _battle_action_buttons(self) -> list[Button]:
-        # La cible est directement la carte ennemie; seule la fuite reste une action séparée.
-        return [
-            Button("Fuir", pygame.Rect(900, 580, 240, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"),
+        buttons = [
+            Button("Attaque normale", pygame.Rect(700, 510, 220, 48), "select_attack", enabled=self.selected_battle_action != "attack"),
         ]
+        if self.battle is not None and isinstance(self.battle.current_actor, Player):
+            for index, skill in enumerate(self.battle.available_skills(self.battle.current_actor)):
+                buttons.append(
+                    Button(
+                        skill.name,
+                        pygame.Rect(700, 565 + index * 48, 220, 42),
+                        "select_skill",
+                        payload={"skill_id": skill.id},
+                        enabled=self.selected_battle_skill_id != skill.id,
+                    )
+                )
+        buttons.append(Button("Fuir", pygame.Rect(950, 580, 190, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"))
+        return buttons
 
     def _battle_result_buttons(self) -> list[Button]:
         # Boutons affichés seulement une fois le combat terminé.
@@ -1154,7 +1191,8 @@ class PygameApp:
             return
 
         if isinstance(self.battle.current_actor, Player):
-            self._draw_centered_text("Clique sur un ennemi pour attaquer", (940, 525), self.font_small, MUTED)
+            action_label = "une attaque normale" if self.selected_battle_action == "attack" else "le skill sélectionné"
+            self._draw_centered_text(f"Sélectionne {action_label}, puis une cible", (940, 480), self.font_small, MUTED)
         self._draw_buttons(self._battle_action_buttons())
 
     def _battle_label(self) -> str:
@@ -1274,7 +1312,7 @@ class PygameApp:
     def _handle_battle_click(self, position: tuple[int, int]) -> None:
         # Gestion des clics spécifiques à l'écran combat.
         # 1) si le combat est fini, on clique sur les boutons de fin;
-        # 2) sinon, on clique sur une cible ou sur l'action de fuite.
+        # 2) sinon, on choisit d'abord l'action, puis sa cible éventuelle.
         if self.battle is None:
             return
         if self.battle.result is not None:
@@ -1287,7 +1325,12 @@ class PygameApp:
 
         for enemy, rect in self._battle_enemy_rects():
             if rect.collidepoint(position):
-                self.battle.player_attack(enemy)
+                if self.selected_battle_action == "attack":
+                    self.battle.player_attack(enemy)
+                elif self.selected_battle_skill_id is not None:
+                    self.battle.player_skill(self.selected_battle_skill_id, enemy)
+                self.selected_battle_action = "attack"
+                self.selected_battle_skill_id = None
                 return
 
         self._handle_buttons(position, self._battle_action_buttons())

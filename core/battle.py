@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from collections import deque
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 from entities.combatant import Combatant
 from entities.enemy import Enemy
@@ -19,10 +21,17 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 class Battle:
-    def __init__(self, party: Party, enemies: list[Enemy], enemy_meta: list[dict]) -> None:
+    def __init__(
+        self,
+        party: Party,
+        enemies: list[Enemy],
+        enemy_meta: list[dict],
+        skill_catalog: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
         self.party = party
         self.enemies = enemies
         self.enemy_meta = enemy_meta
+        self.skill_catalog = skill_catalog or {}
         self.turn_order: list[Combatant] = []
         self.turn_index = 0
         self.messages: deque[str] = deque(maxlen=7)
@@ -95,6 +104,38 @@ class Battle:
         self._log(f"{actor.name} attaque {target.name} pour {dealt} dégâts.")
         self._check_outcome()
 
+    def available_skills(self, actor: Combatant) -> list[SimpleNamespace]:
+        """Retourne les skills déclarés par les armes équipées de l'acteur."""
+        skills: list[SimpleNamespace] = []
+        for weapon_name in ("weapon_primary", "weapon_secondary"):
+            weapon = getattr(actor, weapon_name, None)
+            skill_ids = weapon.get("skills", []) if isinstance(weapon, dict) else getattr(weapon, "skills", [])
+            for skill_id in skill_ids or []:
+                skill_data = self.skill_catalog.get(skill_id)
+                if skill_data is not None:
+                    skills.append(SimpleNamespace(**skill_data))
+        return skills
+
+    def _resolve_skill(self, actor: Combatant, target: Combatant | None, skill: Any) -> None:
+        skill_type = getattr(skill, "type", "attack")
+        if skill_type == "defense":
+            bonus = int(getattr(skill, "defense", 0))
+            actor.defense += bonus
+            self._log(f"{actor.name} utilise {skill.name} et gagne {bonus} défense.")
+            return
+
+        if target is None or not target.is_alive():
+            return
+        damage = max(1, int(getattr(skill, "damage", 0)) + self._attack_value(actor) - self._defense_value(target))
+        dealt = target.take_damage(damage)
+        self._log(f"{actor.name} utilise {skill.name} sur {target.name} pour {dealt} dégâts.")
+        self._check_outcome()
+
+    def _finish_player_action(self) -> None:
+        if self.result is None:
+            self._advance_turn()
+            self._auto_play_until_player()
+
     def _auto_play_until_player(self) -> None:
         while self.result is None:
             actor = self._current_actor()
@@ -110,6 +151,8 @@ class Battle:
             action = actor.choose_action(allies, enemies)
             if action.kind == "attack" and action.target is not None:
                 self._resolve_attack(actor, action.target)
+            elif action.kind == "skill":
+                self._resolve_skill(actor, action.target, action.payload.get("skill"))
             elif action.kind == "defend":
                 self._log(f"{actor.name} se met en garde.")
             else:
@@ -123,9 +166,22 @@ class Battle:
         if leader is None or not leader.is_alive() or self.result is not None:
             return
         self._resolve_attack(leader, target)
-        if self.result is None:
-            self._advance_turn()
-            self._auto_play_until_player()
+        self._finish_player_action()
+
+    def player_skill(self, skill_id: str, target: Combatant | None = None) -> None:
+        leader = self.party.leader
+        if leader is None or not leader.is_alive() or self.result is not None:
+            return
+        skill = next((item for item in self.available_skills(leader) if item.id == skill_id), None)
+        if skill is None:
+            return
+        if getattr(skill, "target", "single_enemy") == "all_enemies":
+            for enemy in self.enemies:
+                if enemy.is_alive():
+                    self._resolve_skill(leader, enemy, skill)
+        else:
+            self._resolve_skill(leader, target, skill)
+        self._finish_player_action()
 
     def flee(self) -> None:
         if self.result is None:

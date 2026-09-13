@@ -17,6 +17,7 @@ class Catalogs:
         self.enemies = self.load("enemies.json")
         self.items = self.load("items.json")
         self.weapons = self.load("weapons.json")
+        self.skills = self.load("skills.json")
         self.armors = self.load("armor.json")
         self.pets = self.load("pets.json")
         self.quests = self.load("quests.json")

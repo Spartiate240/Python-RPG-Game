@@ -48,15 +48,6 @@ class Ally(Combatant):
     def equip_weapon(self, weapon: Any) -> None:
         self.weapon_primary = weapon
 
-    @property
-    def weapon(self) -> Any | None:
-        """Compatibilité avec le premier emplacement d'arme historique."""
-        return self.weapon_primary
-
-    @weapon.setter
-    def weapon(self, value: Any | None) -> None:
-        self.weapon_primary = value
-
     def equip_weapon_secondary(self, weapon: Any | None) -> None:
         self.weapon_secondary = weapon
 

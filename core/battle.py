@@ -37,6 +37,7 @@ class Battle:
         self.messages: deque[str] = deque(maxlen=7)
         self.result: str | None = None
         self.loot: list[str] = []
+        self.total_gold = 0
         self.loot_collected = False
         self._rebuild_turn_order()
         self._auto_play_until_player()
@@ -89,7 +90,8 @@ class Battle:
         if not any(enemy.is_alive() for enemy in self.enemies):
             self.result = "victory"
             total_xp = sum(enemy.xp_reward for enemy in self.enemies)
-            total_gold = sum(enemy.gold_reward for enemy in self.enemies)
+            total_gold = sum(enemy.roll_gold() for enemy in self.enemies)
+            self.total_gold = total_gold
             for member in self.party.active_members():
                 if hasattr(member, "gain_xp"):
                     member.gain_xp(total_xp)

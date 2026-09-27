@@ -13,7 +13,10 @@
     "rarity": "common",
     "given_exp": 1,
     "skills": ["slash", "jump"],
-    "drops": {"iron_sword": 1, "gold_coin": 50},
+    "drops": {
+      "iron_sword": {"quantity": 1, "chance": 0.3},
+      "gold_coin": {"quantity": 50, "chance": 1.0}
+    },
     "sprite": "assets/sprites/enemies/goblin.gif"
   },
   {
@@ -29,7 +32,10 @@
     "given_exp": 2,
     "rarity": "uncommon",
     "skills": ["bone_shot", "bone_wall"],
-    "drops": {"bone": 20, "fire_staff": 1},
+    "drops": {
+      "bone": {"quantity": 1, "chance": 0.7},
+      "fire_staff": {"quantity": 1, "chance": 0.1}
+    },
     "sprite": "assets/sprites/enemies/skeleton.gif"
   }
 ]

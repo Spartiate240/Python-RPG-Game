@@ -26,11 +26,13 @@ class Enemy(Combatant):
         xp_reward: int = 0,
         gold_reward: int = 0,
         loot_table: list[dict] | None = None,
+        gold_table: list[dict] | None = None,
     ) -> None:
         super().__init__(name, max_hp, attack, defense, speed)
         self.xp_reward = xp_reward
         self.gold_reward = gold_reward
-        self.loot_table = loot_table or []  # [{"item_id": "...", "chance": 0.3}, ...]
+        self.loot_table = loot_table or []
+        self.gold_table = gold_table or []
 
     # ---- Chargement depuis JSON -----------------------------------
     @classmethod
@@ -45,12 +47,28 @@ class Enemy(Combatant):
             if payload is None:
                 raise KeyError(f"Unknown enemy id: {enemy_id}")
 
-        loot_table = payload.get("loot_table")
-        if loot_table is None:
-            loot_table = [
-                {"item_id": item_id, "chance": amount / 100}
-                for item_id, amount in payload.get("drops", {}).items()
-            ]
+        drops = payload.get("drops", {})
+        loot_table: list[dict] = []
+        gold_table: list[dict] = []
+        for item_id, value in drops.items():
+            if item_id == "gold_coin" and not isinstance(value, dict):
+                quantity = int(value)
+                chance = 1
+            elif isinstance(value, dict):
+                quantity = int(value.get("quantity", 1))
+                chance = float(value.get("chance", 1))
+            else:
+                quantity = 1
+                chance = float(value) / 100
+            drop = {"quantity": max(0, quantity), "chance": max(0, min(1, chance))}
+            if item_id == "gold_coin":
+                gold_table.append(drop)
+            else:
+                loot_table.append({"item_id": item_id, **drop})
+
+        if payload.get("loot_table") is not None:
+            loot_table = payload["loot_table"]
+        gold_reward = int(payload.get("gold_reward", 0))
 
         return cls(
             name=payload["name"],
@@ -59,16 +77,25 @@ class Enemy(Combatant):
             defense=payload["defense"],
             speed=payload["speed"],
             xp_reward=payload.get("xp_reward", payload.get("given_exp", 0)),
-            gold_reward=payload.get("gold_reward", 0),
+            gold_reward=gold_reward,
             loot_table=loot_table,
+            gold_table=gold_table,
         )
 
     def roll_loot(self) -> list[str]:
         return [
             drop["item_id"]
             for drop in self.loot_table
-            if random.random() < drop.get("chance", 0)
+            for _ in range(int(drop.get("quantity", 1)))
+            if random.random() < float(drop.get("chance", 0))
         ]
+
+    def roll_gold(self) -> int:
+        return self.gold_reward + sum(
+            int(drop.get("quantity", 0))
+            for drop in self.gold_table
+            if random.random() < float(drop.get("chance", 0))
+        )
 
     # ---- IA basique -------------------------------------------------
     def choose_action(self, allies: list[Combatant], enemies: list[Combatant]) -> Action:

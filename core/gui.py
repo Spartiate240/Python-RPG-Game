@@ -275,7 +275,7 @@ class PygameApp:
             if self.battle is not None and self.battle.result == "victory":
                 self._collect_battle_loot()
                 self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0)) + 1
-                self.progression["stats"]["gold_earned"] = int(self.progression["stats"].get("gold_earned", 0)) + sum(enemy.gold_reward for enemy in self.battle.enemies)
+                self.progression["stats"]["gold_earned"] = int(self.progression["stats"].get("gold_earned", 0)) + self.battle.total_gold
                 feedback = self.progression_manager.update_titles()
                 if feedback is not None:
                     self.status_feedback = feedback

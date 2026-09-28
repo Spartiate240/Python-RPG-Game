@@ -1,0 +1,222 @@
+[
+  {
+    "line_id": "adventurer",
+    "name": "Aventurier",
+    "default": true,
+    "unlock": null,
+    "mastery_gain": {
+      "full_if": null
+    },
+    "tiers": [
+      {
+        "tier": 1,
+        "name": "Adventurer",
+        "title": "Voyageur",
+        "mastery_required": 0,
+        "trial_quest": null,
+        "sprite": "assets/sprites/classes/adventurer.gif",
+        "effects": []
+      }
+    ]
+  },
+  {
+    "line_id": "knight",
+    "name": "Chevalier",
+    "default": false,
+    "unlock": {
+      "description": "Pour devenir un chevalier, vous devez avoir aidé les populations et avoir l'habileté de porter une armure lourde.",
+      "trainer_quest": "knight_initiation",
+      "level": 5,
+      "quests_completed": 5,
+      "wins_with": {
+        "armor_type": "heavy",
+        "quantity": 10
+      }
+    },
+    "mastery_gain": {
+      "full_if": {
+        "armor_type": "heavy"
+      }
+    },
+    "tiers": [
+      {
+        "tier": 1,
+        "name": "Knight Apprentice",
+        "title": "Écuyer",
+        "mastery_required": 0,
+        "trial_quest": null,
+        "sprite": "assets/sprites/classes/knight_1.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "heavy"
+            },
+            "stats": {
+              "defense": 2,
+              "health": 5
+            }
+          }
+        ]
+      },
+      {
+        "tier": 2,
+        "name": "Knight",
+        "title": "Protecteur du peuple",
+        "mastery_required": 200,
+        "trial_quest": null,
+        "sprite": "assets/sprites/classes/knight_2.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "heavy"
+            },
+            "stats": {
+              "defense": 2,
+              "health": 5
+            }
+          }
+        ]
+      },
+      {
+        "tier": 3,
+        "name": "Champion",
+        "title": "Champion du royaume",
+        "mastery_required": 600,
+        "trial_quest": "champion_trial",
+        "sprite": "assets/sprites/classes/knight_3.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "heavy"
+            },
+            "stats": {
+              "defense": 3,
+              "health": 10
+            }
+          },
+          {
+            "requires": {},
+            "passive": {
+              "trigger": "on_turn_start",
+              "effect": "regen_percent_health",
+              "value": 0.02
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "line_id": "archer",
+    "name": "Archer",
+    "default": false,
+    "unlock": {
+      "description": "Un archer doit s'entraîner à utiliser un arc.",
+      "trainer_quest": "archer_initiation",
+      "level": 5,
+      "quests_completed": 2,
+      "wins_with": {
+        "weapon_type": "bow",
+        "quantity": 20
+      }
+    },
+    "mastery_gain": {
+      "full_if": {
+        "weapon_type": "bow"
+      }
+    },
+    "tiers": [
+      {
+        "tier": 1,
+        "name": "Archer Beginner",
+        "title": "Tireur novice",
+        "mastery_required": 0,
+        "trial_quest": null,
+        "sprite": "assets/sprites/classes/archer_1.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "light"
+            },
+            "stats": {
+              "speed": 2,
+              "health": 1
+            }
+          },
+          {
+            "requires": {
+              "weapon_type": "bow"
+            },
+            "stats": {
+              "damage": 2
+            }
+          }
+        ]
+      },
+      {
+        "tier": 2,
+        "name": "Archer",
+        "title": "Œil de faucon",
+        "mastery_required": 200,
+        "trial_quest": null,
+        "sprite": "assets/sprites/classes/archer_2.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "light"
+            },
+            "stats": {
+              "speed": 1,
+              "health": 2
+            }
+          },
+          {
+            "requires": {
+              "weapon_type": "bow"
+            },
+            "stats": {
+              "damage": 2
+            }
+          }
+        ]
+      },
+      {
+        "tier": 3,
+        "name": "Ranger",
+        "title": "Maître des bois",
+        "mastery_required": 600,
+        "trial_quest": "ranger_trial",
+        "sprite": "assets/sprites/classes/archer_3.gif",
+        "effects": [
+          {
+            "requires": {
+              "armor_type": "light"
+            },
+            "stats": {
+              "speed": 2,
+              "health": 3
+            }
+          },
+          {
+            "requires": {
+              "weapon_type": "bow"
+            },
+            "stats": {
+              "damage": 3
+            }
+          },
+          {
+            "requires": {
+              "weapon_type": "bow"
+            },
+            "passive": {
+              "trigger": "on_attack",
+              "effect": "extra_attack",
+              "chance": 0.2
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -38,12 +38,7 @@ class QuestsScreen:
         board = app.renderer.panel_surface(QUESTS_BOARD_RECT.size, "freefantasy", "ff_001", PANEL_2)
         app.screen.blit(board, QUESTS_BOARD_RECT.topleft)
         app._draw_text("Tableau des quêtes", (115, 82), app.font_big, ACCENT)
-        app._draw_text(
-            "Les tâches proposées par les habitants du village",
-            (115, 110),
-            app.font_small,
-            MUTED,
-        )
+
         for index, quest in enumerate(app.quest_catalog.values()):
             y = 150 + index * 112
             app._draw_text(str(quest.get("name", quest["id"])), (145, y), app.font, ACCENT)

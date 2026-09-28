@@ -9,12 +9,12 @@
       "defense": 8,
       "speed": 10,
       "level": 1,
-      "xp": 5,
-      "gold": 0,
+      "xp": 7,
+      "gold": 100,
       "weapon_primary": "fire_staff",
       "weapon_secondary": null,
       "helmet": null,
-      "chest": null,
+      "chest": "plate_armor",
       "legs": null,
       "boots": null,
       "arms": null,
@@ -33,7 +33,7 @@
       "role": "attacker",
       "level": 1,
       "xp": 4,
-      "weapon_primary": null,
+      "weapon_primary": "iron_sword",
       "weapon_secondary": null,
       "helmet": null,
       "chest": null,
@@ -57,15 +57,13 @@
       "mana_potion": 2
     },
     "weapons": {},
-    "armors": {
-      "plate_armor": 1
-    },
+    "armors": {},
     "pets": {}
   },
   "progression": {
     "stats": {
-      "victories": 1,
-      "gold_earned": 0,
+      "victories": 2,
+      "gold_earned": 50,
       "quests_completed": 0
     },
     "quests": {
@@ -80,7 +78,7 @@
       "goblin_killer": {
         "progress": [
           {
-            "current": 1,
+            "current": 2,
             "target": 10
           }
         ],
@@ -106,6 +104,44 @@
         ],
         "unlocked": false,
         "reward_claimed": false
+      }
+    }
+  },
+  "merchant_stock": {
+    "basic_merchant": {
+      "items": {
+        "small_health_potion": {
+          "cost": 10,
+          "quantity": 5
+        },
+        "mana_potion": {
+          "cost": 15,
+          "quantity": 3
+        }
+      },
+      "weapons": {
+        "iron_sword": {
+          "cost": 50,
+          "quantity": 1
+        }
+      },
+      "armors": {
+        "leather_armor": {
+          "cost": 25,
+          "quantity": 1
+        }
+      }
+    },
+    "pet_shop": {
+      "pets": {
+        "dog": {
+          "cost": 100,
+          "quantity": 1
+        },
+        "dragon": {
+          "cost": 15000,
+          "quantity": 1
+        }
       }
     }
   }

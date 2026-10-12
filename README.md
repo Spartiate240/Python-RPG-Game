@@ -277,10 +277,20 @@ limites actuelles sont :
 
 Les évolutions naturelles sont :
 
-1. Tests automatisés et sauvegardes versionnées.
-2. Guilde/Ville.
-3. Effets persistants et combat enrichi.
-4. Revente et économie.
-5. Gestion avancée du groupe.
-6. Interface, audio et polish.
+1. Guilde/Ville.
+2. Effets persistants et combat enrichi.
+3. Revente et économie.
+4. Gestion avancée du groupe.
+5. Interface et polish.
+6. Ajout vrai début de partie
 7. Simulation d’équilibrage et distribution du jeu.
+
+
+
+
+
+## En cours d'ajout:
+- Ajouter journal combat
+- Arrêter que les skills de dégats de zone s'activent tout de suite
+- Modifier chargement partie/début nouvelle partie
+- Ajout chiffrement fichier JSON de sauvegarde

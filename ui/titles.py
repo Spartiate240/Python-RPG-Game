@@ -34,7 +34,7 @@ class TitlesScreen:
             MUTED,
         )
         for index, title in enumerate(app.title_catalog.values()):
-            y = 180 + index * 72
+            y = 230 + index * 72
             state = app.progression["titles"].get(str(title["id"]), {})
             progress = " / ".join(
                 f"{item['current']}/{item['target']}"
@@ -43,13 +43,13 @@ class TitlesScreen:
             unlocked = "Débloqué" if state.get("unlocked") else progress
             app._draw_text(
                 str(title.get("name", title["id"])),
-                (140, y),
+                (220, y),
                 app.font,
                 SUCCESS if state.get("unlocked") else ACCENT,
             )
             app._draw_text(
                 f"{title.get('description', '')} — {unlocked}",
-                (140, y + 30),
+                (220, y + 30),
                 app.font_small,
                 TEXT,
             )

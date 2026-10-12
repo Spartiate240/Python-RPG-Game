@@ -12,7 +12,7 @@ from ui.widgets import Button
 
 SHOP_PANEL_RECT = pygame.Rect(60, 70, 1160, 580)
 SHOP_BACK_BUTTON_RECT = pygame.Rect(1075, 610, 130, 56)
-SHOP_MERCHANT_BUTTON_RECT = pygame.Rect(150, 205, 980, 70)
+SHOP_MERCHANT_BUTTON_RECT = pygame.Rect(150, 275, 980, 65)
 SHOP_ITEM_BUTTON_X = 130
 SHOP_ITEM_BUTTON_W = 700
 SHOP_ITEM_BUTTON_H = 48
@@ -57,11 +57,12 @@ class ShopScreen:
     def buttons(self, app: Any) -> list[Button]:
         buttons = [Button("Retour", SHOP_BACK_BUTTON_RECT, "back")]
         if app.selected_merchant_id is None:
+            buttons.append(Button("Apprentissage des classes", pygame.Rect(150, 200, 980, 65), "classes"))
             for index, merchant in enumerate(app.merchant_catalog.values()):
                 buttons.append(
                     Button(
                         str(merchant.get("name", merchant["id"])),
-                        pygame.Rect(SHOP_MERCHANT_BUTTON_RECT.x, SHOP_MERCHANT_BUTTON_RECT.y + index * 86, SHOP_MERCHANT_BUTTON_RECT.w, SHOP_MERCHANT_BUTTON_RECT.h),
+                        pygame.Rect(SHOP_MERCHANT_BUTTON_RECT.x, SHOP_MERCHANT_BUTTON_RECT.y + index * 75, SHOP_MERCHANT_BUTTON_RECT.w, SHOP_MERCHANT_BUTTON_RECT.h),
                         f"merchant:{merchant['id']}",
                     )
                 )

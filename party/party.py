@@ -111,7 +111,7 @@ def _companion_to_dict(companion: Companion) -> dict:
         "name": companion.name,
         "reward_id": getattr(companion, "reward_id", None),
         "hp": companion.hp,
-        "max_hp": companion.max_hp,
+        "max_hp": companion.base_max_hp,
         "attack": companion.attack,
         "defense": companion.defense,
         "speed": companion.speed,

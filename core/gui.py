@@ -18,6 +18,7 @@ from core.catalog import Catalogs
 from core.game import Game, GameState
 from core.encounter import EncounterService
 from core.inventory import InventoryManager
+from core.classes import ClassService
 from core.progression import ProgressionManager
 from core.shop import ShopService
 from entities.player import Player
@@ -30,6 +31,7 @@ from ui.quests import QuestsScreen
 from ui.regions import RegionsScreen
 from ui.renderer import UIRenderer
 from ui.shop import ShopScreen
+from ui.classes import ClassesScreen
 from ui.status import StatusScreen
 from ui.theme import PANEL, TEXT
 from ui.titles import TitlesScreen
@@ -97,6 +99,7 @@ class PygameApp:
         self.regions_screen = RegionsScreen()
         self.zones_screen = ZonesScreen()
         self.shop_screen = ShopScreen()
+        self.classes_screen = ClassesScreen()
         self.status_screen = StatusScreen()
         self.quests_screen = QuestsScreen()
         self.titles_screen = TitlesScreen()
@@ -143,6 +146,7 @@ class PygameApp:
         self.inventory_manager = InventoryManager(self.pet_catalog)
         self.progression_manager = ProgressionManager(self.quest_catalog, self.title_catalog)
         self.shop_service = ShopService(self.catalogs, self.merchant_stock)
+        self.class_service = ClassService(self.catalogs.classes, self.quest_catalog)
         self._bind_managers()
         self.running = True
 
@@ -151,6 +155,7 @@ class PygameApp:
         self.inventory_manager.selected_member_index = self.selected_member_index
         self.progression_manager.bind(self.party, self.inventory, self.progression)
         self.shop_service.bind(self.party, self.inventory_manager, self.merchant_stock)
+        self.class_service.bind(self.party, self.progression)
 
     def _item_from_stock(self, item_id: str | None) -> object | None:
         # Convertit un id du stock sauvegardé en objet affichable/équipable.
@@ -191,6 +196,8 @@ class PygameApp:
             self.battle_screen.handle_click(self, position)
         elif self.state == "shop":
             self._handle_buttons(position, self.shop_screen.buttons(self))
+        elif self.state == "classes":
+            self._handle_buttons(position, self.classes_screen.buttons(self))
         elif self.state == "quests":
             self._handle_buttons(position, self.quests_screen.buttons(self))
         elif self.state == "titles":
@@ -242,6 +249,11 @@ class PygameApp:
         elif action == "merchant_list":
             self.selected_merchant_id = None
             self.status_feedback = ""
+        elif action == "classes":
+            self.state = "classes"
+            self.status_feedback = ""
+        elif action.startswith("learn_class:"):
+            self.status_feedback = self.class_service.learn(action.split(":", 1)[1])
         elif action.startswith("buy:"):
             category, item_id = action.split(":", 2)[1:]
             self.status_feedback = self.shop_service.buy(self.selected_merchant_id, category, item_id)
@@ -276,6 +288,7 @@ class PygameApp:
                 self._collect_battle_loot()
                 self.progression["stats"]["victories"] = int(self.progression["stats"].get("victories", 0)) + 1
                 self.progression["stats"]["gold_earned"] = int(self.progression["stats"].get("gold_earned", 0)) + self.battle.total_gold
+                self._record_class_victory()
                 feedback = self.progression_manager.update_titles()
                 if feedback is not None:
                     self.status_feedback = feedback
@@ -383,6 +396,44 @@ class PygameApp:
         if collected:
             self.status_feedback = "Butin obtenu : " + ", ".join(collected) + "."
 
+    def _record_class_victory(self) -> None:
+        leader = self.party.leader if self.party else None
+        if leader is None:
+            return
+        stats = self.progression.setdefault("stats", {})
+        equipment_types = [
+            self._item_type(getattr(leader, slot, None))
+            for slot in ("weapon_primary", "weapon_secondary", "helmet", "chest", "legs", "boots", "arms")
+        ]
+        for equipment_type in set(filter(None, equipment_types)):
+            stats[f"wins_with_{equipment_type}"] = int(stats.get(f"wins_with_{equipment_type}", 0)) + 1
+        active_id = self.progression.get("active_class")
+        class_data = self.catalogs.classes.get(active_id or "", {})
+        full_if = (class_data.get("mastery_gain") or {}).get("full_if") or {}
+        full = self._class_condition_met(leader, full_if)
+        mastery_xp = self.battle.total_xp if full and self.battle is not None else 0
+        feedback = self.class_service.gain_mastery(mastery_xp)
+        if feedback:
+            self.status_feedback = feedback
+
+    @staticmethod
+    def _class_condition_met(leader: Any, condition: dict[str, Any]) -> bool:
+        if not condition:
+            return False
+        if condition.get("armor_type"):
+            return any(PygameApp._item_type(getattr(leader, slot, None)) == condition["armor_type"] for slot in ("helmet", "chest", "legs", "boots", "arms"))
+        if condition.get("weapon_type"):
+            return any(PygameApp._item_type(getattr(leader, slot, None)) == condition["weapon_type"] for slot in ("weapon_primary", "weapon_secondary"))
+        return False
+
+    @staticmethod
+    def _item_type(item: Any | None) -> str | None:
+        if isinstance(item, dict):
+            value = item.get("type")
+        else:
+            value = getattr(item, "type", None)
+        return str(value) if value is not None else None
+
     def _start_battle(self) -> None:
         if self.party is None:
             return
@@ -408,6 +459,8 @@ class PygameApp:
             self.status_screen.render(self)
         elif self.state == "shop":
             self.shop_screen.render(self)
+        elif self.state == "classes":
+            self.classes_screen.render(self)
         elif self.state == "quests":
             self.quests_screen.render(self)
         elif self.state == "titles":

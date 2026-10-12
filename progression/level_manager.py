@@ -37,7 +37,10 @@ class LevelManager:
     @staticmethod
     def _level_up(ally: Any) -> None:
         ally.level += 1
-        ally.max_hp += 2
+        if hasattr(ally, "_base_max_hp"):
+            ally._base_max_hp += 2
+        else:
+            ally.max_hp += 2
         ally.hp = ally.max_hp
         ally.attack += 1
         ally.defense += 1

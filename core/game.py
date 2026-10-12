@@ -39,6 +39,7 @@ class Game:
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
             "titles": {},
+            "classes": {},
         }
 
     # ---- Persistance --------------------------------------------------
@@ -57,6 +58,7 @@ class Game:
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
             "titles": {},
+            "classes": {},
         }
 
     def load_game(self) -> GameState:

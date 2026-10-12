@@ -17,7 +17,7 @@ class RegionsScreen:
     def buttons(app: Any) -> list[Button]:
         buttons = [Button("Retour", pygame.Rect(1035, 610, 150, 48), "back")]
         for index, region in enumerate(app.region_catalog.values()):
-            buttons.append(Button(str(region.get("name", region["id"])), pygame.Rect(140, 190 + index * 90, 980, 62), f"select_region:{region['id']}"))
+            buttons.append(Button(str(region.get("name", region["id"])), pygame.Rect(220, 230 + index * 75, 845, 65), f"select_region:{region['id']}"))
         return buttons
 
     def render(self, app: Any) -> None:

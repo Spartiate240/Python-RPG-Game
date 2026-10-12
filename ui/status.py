@@ -1,4 +1,4 @@
-"""Ecran de l'etat du groupe."""
+"""Ecran de l'Inventaire."""
 
 from __future__ import annotations
 
@@ -193,7 +193,7 @@ class StatusScreen:
 
     def render(self, app: Any) -> None:
         app._draw_panel(STATUS_PANEL_RECT, PANEL)
-        app._draw_text("État du groupe", (STATUS_LEFT_X, STATUS_TITLE_Y), app.font_big, ACCENT)
+        app._draw_text("Inventaire", (STATUS_LEFT_X, STATUS_TITLE_Y), app.font_big, ACCENT)
         app._draw_text(
             "Clique sur un personnage pour voir son équipement.",
             (STATUS_LEFT_X, STATUS_HINT_Y),

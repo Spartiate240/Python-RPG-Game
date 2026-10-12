@@ -89,7 +89,7 @@ class Player(Ally):
         return {
             "name": self.name,
             "hp": self.hp,
-            "max_hp": self.max_hp,
+            "max_hp": self.base_max_hp,
             "attack": self.attack,
             "defense": self.defense,
             "speed": self.speed,

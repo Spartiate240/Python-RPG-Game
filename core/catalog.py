@@ -22,6 +22,7 @@ class Catalogs:
         self.pets = self.load("pets.json")
         self.quests = self.load("quests.json")
         self.titles = self.load("titles.json")
+        self.classes = self.load_classes()
         self.regions = self.load("regions.json")
         self.merchants = self.load("merchants.json")
 
@@ -36,6 +37,14 @@ class Catalogs:
         if item_id is None:
             return None
         return self.items.get(item_id) or self.weapons.get(item_id) or self.armors.get(item_id) or self.pets.get(item_id)
+
+    def load_classes(self) -> dict[str, dict[str, Any]]:
+        data = json.loads((self.data_dir / "classes.json").read_text(encoding="utf-8"))
+        return {
+            str(entry.get("line_id")): {"id": entry.get("line_id"), **entry}
+            for entry in data
+            if isinstance(entry, dict) and entry.get("line_id")
+        }
 
     def region_for_zone(self, zone_id: str | None) -> str | None:
         if zone_id is None:

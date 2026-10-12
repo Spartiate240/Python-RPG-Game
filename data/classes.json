@@ -14,6 +14,7 @@
         "title": "Voyageur",
         "mastery_required": 0,
         "trial_quest": null,
+        "requirements": null,
         "sprite": "assets/sprites/classes/adventurer.gif",
         "effects": []
       }
@@ -24,7 +25,7 @@
     "name": "Chevalier",
     "default": false,
     "unlock": {
-      "description": "Pour devenir un chevalier, vous devez avoir aidé les populations et avoir l'habileté de porter une armure lourde.",
+      "description": "Pour devenir un chevalier, vous devez avoir aider les populations et avoir l'habileté de porter une armure lourde.",
       "trainer_quest": "knight_initiation",
       "level": 5,
       "quests_completed": 5,
@@ -45,6 +46,7 @@
         "title": "Écuyer",
         "mastery_required": 0,
         "trial_quest": null,
+        "requirements": null,
         "sprite": "assets/sprites/classes/knight_1.gif",
         "effects": [
           {
@@ -64,6 +66,15 @@
         "title": "Protecteur du peuple",
         "mastery_required": 200,
         "trial_quest": null,
+        "requirements": {
+          "description": "Un chevalier se doit de protéger le peuple : il doit avoir mené de nombreuses quêtes à leur terme.",
+          "level": 10,
+          "quests_completed": 12,
+          "wins_with": {
+            "armor_type": "heavy",
+            "quantity": 30
+          }
+        },
         "sprite": "assets/sprites/classes/knight_2.gif",
         "effects": [
           {
@@ -83,6 +94,15 @@
         "title": "Champion du royaume",
         "mastery_required": 600,
         "trial_quest": "champion_trial",
+        "requirements": {
+          "description": "Seuls les chevaliers dont les exploits sont connus de tout le royaume peuvent prétendre au titre de champion.",
+          "level": 20,
+          "quests_completed": 30,
+          "wins_with": {
+            "armor_type": "heavy",
+            "quantity": 100
+          }
+        },
         "sprite": "assets/sprites/classes/knight_3.gif",
         "effects": [
           {
@@ -132,6 +152,7 @@
         "title": "Tireur novice",
         "mastery_required": 0,
         "trial_quest": null,
+        "requirements": null,
         "sprite": "assets/sprites/classes/archer_1.gif",
         "effects": [
           {
@@ -159,6 +180,15 @@
         "title": "Œil de faucon",
         "mastery_required": 200,
         "trial_quest": null,
+        "requirements": {
+          "description": "Un archer confirmé a perfectionné sa visée sur de nombreux combats.",
+          "level": 10,
+          "quests_completed": 6,
+          "wins_with": {
+            "weapon_type": "bow",
+            "quantity": 50
+          }
+        },
         "sprite": "assets/sprites/classes/archer_2.gif",
         "effects": [
           {
@@ -186,6 +216,15 @@
         "title": "Maître des bois",
         "mastery_required": 600,
         "trial_quest": "ranger_trial",
+        "requirements": {
+          "description": "Un ranger maîtrise l'arc à la perfection et connaît les terres sauvages.",
+          "level": 20,
+          "quests_completed": 12,
+          "wins_with": {
+            "weapon_type": "bow",
+            "quantity": 150
+          }
+        },
         "sprite": "assets/sprites/classes/archer_3.gif",
         "effects": [
           {

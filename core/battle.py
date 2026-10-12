@@ -7,6 +7,7 @@ Logique des combats, indépendante de pygame.
 from __future__ import annotations
 
 from collections import deque
+import random
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -37,6 +38,7 @@ class Battle:
         self.messages: deque[str] = deque(maxlen=7)
         self.result: str | None = None
         self.loot: list[str] = []
+        self.total_xp = 0
         self.total_gold = 0
         self.loot_collected = False
         self._rebuild_turn_order()
@@ -44,7 +46,7 @@ class Battle:
 
     def _rebuild_turn_order(self) -> None:
         combatants = [*self.party.active_members(), *self.enemies]
-        self.turn_order = sorted(combatants, key=lambda combatant: combatant.speed, reverse=True)
+        self.turn_order = sorted(combatants, key=lambda combatant: getattr(combatant, "total_speed", combatant.speed), reverse=True)
         self.turn_index = 0
 
     def _current_actor(self) -> Combatant | None:
@@ -90,6 +92,7 @@ class Battle:
         if not any(enemy.is_alive() for enemy in self.enemies):
             self.result = "victory"
             total_xp = sum(enemy.xp_reward for enemy in self.enemies)
+            self.total_xp = total_xp
             total_gold = sum(enemy.roll_gold() for enemy in self.enemies)
             self.total_gold = total_gold
             for member in self.party.active_members():
@@ -100,16 +103,29 @@ class Battle:
             self.loot = [item_id for enemy in self.enemies for item_id in enemy.roll_loot()]
             self._log(f"Victoire. +{total_xp} XP, +{total_gold} or.")
 
+    def _apply_turn_start(self, actor: Combatant) -> None:
+        for passive in getattr(actor, "class_passives", lambda _trigger: [])("on_turn_start"):
+            if passive.get("effect") == "regen_percent_health":
+                restored = actor.heal(max(1, int(actor.max_hp * float(passive.get("value", 0)))))
+                if restored:
+                    self._log(f"{actor.name} récupère {restored} PV.")
+
     def _sides_for(self, combatant: Combatant) -> tuple[list[Combatant], list[Combatant]]:
         if combatant in self.enemies:
             return self.enemies, list(self.party.active_members())
         return list(self.party.active_members()), self.enemies
 
-    def _resolve_attack(self, actor: Combatant, target: Combatant) -> None:
+    def _resolve_attack(self, actor: Combatant, target: Combatant, trigger_passive: bool = True) -> None:
         damage = max(1, self._attack_value(actor) - self._defense_value(target))
         dealt = target.take_damage(damage)
         self._log(f"{actor.name} attaque {target.name} pour {dealt} dégâts.")
         self._check_outcome()
+        if trigger_passive and self.result is None and target.is_alive():
+            for passive in getattr(actor, "class_passives", lambda _trigger: [])("on_attack"):
+                if passive.get("effect") == "extra_attack" and random.random() < float(passive.get("chance", 0)):
+                    self._log(f"{actor.name} obtient une attaque supplémentaire.")
+                    self._resolve_attack(actor, target, trigger_passive=False)
+                    break
 
     def available_skills(self, actor: Combatant) -> list[SimpleNamespace]:
         """Retourne les skills déclarés par les armes équipées de l'acteur."""
@@ -151,6 +167,7 @@ class Battle:
             if not actor.is_alive():
                 self._advance_turn()
                 continue
+            self._apply_turn_start(actor)
             if isinstance(actor, Player):
                 return
 

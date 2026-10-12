@@ -43,6 +43,8 @@ class Ally(Combatant):
         self.arms: Any | None = None
         self.pet: Any | None = None
         self.skills: list["Skill"] = []
+        self.class_catalog: dict[str, dict[str, Any]] = {}
+        self.class_progression: dict[str, Any] = {}
 
     # ---- Équipement ------------------------------------------------
     def equip_weapon(self, weapon: Any) -> None:
@@ -87,7 +89,7 @@ class Ally(Combatant):
             _item_value(self.weapon_secondary, ("attack_bonus", "damage")),
             _pet_attack_bonus(self.pet),
         )
-        return self.attack + sum(bonuses)
+        return self.attack + sum(bonuses) + self.class_stat_bonus("damage")
 
     @property
     def total_defense(self) -> int:
@@ -98,7 +100,69 @@ class Ally(Combatant):
             _item_value(self.boots, ("defense_bonus", "defense")),
             _item_value(self.arms, ("defense_bonus", "defense")),
         )
-        return self.defense + sum(bonuses)
+        return self.defense + sum(bonuses) + self.class_stat_bonus("defense")
+
+    @property
+    def total_speed(self) -> int:
+        return self.speed + self.class_stat_bonus("speed")
+
+    @property
+    def max_hp(self) -> int:
+        return self._base_max_hp + self.class_stat_bonus("health")
+
+    @max_hp.setter
+    def max_hp(self, value: int) -> None:
+        self._base_max_hp = int(value)
+
+    def bind_classes(self, class_catalog: dict[str, dict[str, Any]], progression: dict[str, Any]) -> None:
+        self.class_catalog = class_catalog
+        self.class_progression = progression
+
+    @property
+    def base_max_hp(self) -> int:
+        return self._base_max_hp
+
+    def _active_class_data(self) -> tuple[dict[str, Any], dict[str, Any]] | None:
+        class_id = getattr(self, "class_progression", {}).get("active_class")
+        class_data = getattr(self, "class_catalog", {}).get(class_id or "")
+        state = getattr(self, "class_progression", {}).get("classes", {}).get(class_id or "", {})
+        if not class_data or not state.get("unlocked"):
+            return None
+        return class_data, state
+
+    def _class_effects(self) -> list[dict[str, Any]]:
+        active = self._active_class_data()
+        if active is None:
+            return []
+        class_data, state = active
+        tier_index = max(0, min(int(state.get("tier", 1)) - 1, len(class_data.get("tiers", [])) - 1))
+        return list(class_data.get("tiers", [])[tier_index].get("effects", []))
+
+    def _effect_requirements_met(self, requirements: dict[str, Any]) -> bool:
+        if not requirements:
+            return True
+        armor_type = requirements.get("armor_type")
+        weapon_type = requirements.get("weapon_type")
+        if armor_type:
+            return any(_item_type(getattr(self, slot, None)) == armor_type for slot in ("helmet", "chest", "legs", "boots", "arms"))
+        if weapon_type:
+            return any(_item_type(getattr(self, slot, None)) == weapon_type for slot in ("weapon_primary", "weapon_secondary"))
+        return True
+
+    def class_stat_bonus(self, stat: str) -> int:
+        total = 0
+        for effect in self._class_effects():
+            if self._effect_requirements_met(effect.get("requires", {})):
+                total += int(effect.get("stats", {}).get(stat, 0))
+        return total
+
+    def class_passives(self, trigger: str) -> list[dict[str, Any]]:
+        return [
+            effect["passive"]
+            for effect in self._class_effects()
+            if effect.get("passive") and effect["passive"].get("trigger") == trigger
+            and self._effect_requirements_met(effect.get("requires", {}))
+        ]
 
     # ---- Compétences -------------------------------------------------
     def learn_skill(self, skill: "Skill") -> None:
@@ -147,3 +211,8 @@ def _value(item: Any | None, key: str) -> Any:
     if isinstance(item, dict):
         return item.get(key)
     return getattr(item, key, None)
+
+
+def _item_type(item: Any | None) -> str | None:
+    value = _value(item, "type")
+    return str(value) if value is not None else None

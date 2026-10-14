@@ -82,6 +82,10 @@ class Battle:
     def _log(self, message: str) -> None:
         self.messages.append(message)
 
+    def log_message(self, message: str) -> None:
+        """Ajoute au journal un événement géré par un service externe."""
+        self._log(message)
+
     def _check_outcome(self) -> None:
         if self.result is not None:
             return
@@ -119,6 +123,8 @@ class Battle:
         damage = max(1, self._attack_value(actor) - self._defense_value(target))
         dealt = target.take_damage(damage)
         self._log(f"{actor.name} attaque {target.name} pour {dealt} dégâts.")
+        if not target.is_alive():
+            self._log(f"{target.name} est vaincu.")
         self._check_outcome()
         if trigger_passive and self.result is None and target.is_alive():
             for passive in getattr(actor, "class_passives", lambda _trigger: [])("on_attack"):
@@ -152,6 +158,8 @@ class Battle:
         damage = max(1, int(getattr(skill, "damage", 0)) + self._attack_value(actor) - self._defense_value(target))
         dealt = target.take_damage(damage)
         self._log(f"{actor.name} utilise {skill.name} sur {target.name} pour {dealt} dégâts.")
+        if not target.is_alive():
+            self._log(f"{target.name} est vaincu.")
         self._check_outcome()
 
     def _finish_player_action(self) -> None:

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from party.party import Party
 from entities.player import Player
+from progression import crypto
 
 PROGRESSION_DIR = Path("progression")
 GAME_SAVE_PATH = PROGRESSION_DIR / "Saved_progress.json"
@@ -129,9 +130,8 @@ class Game:
 
     @staticmethod
     def _write_json(path: Path, data: dict) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        crypto.write_save(path, data)
 
     @staticmethod
     def _read_json(path: Path) -> dict:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return crypto.read_save(path)

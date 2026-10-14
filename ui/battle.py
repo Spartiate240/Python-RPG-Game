@@ -100,6 +100,21 @@ class BattleScreen:
         buttons.append(Button("Fuir", pygame.Rect(950, 580, 190, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"))
         return buttons
 
+    def draw_log(self, app: Any) -> None:
+        """Affiche les événements récents du combat sans interrompre l'action."""
+        rect = pygame.Rect(700, 180, 480, 245)
+        app._draw_panel(rect, PANEL_2)
+        app._draw_text("Journal du combat", (720, 195), app.font, ACCENT)
+        messages = list(app.battle.messages)[-7:]
+        if not messages:
+            app._draw_text("Aucun événement", (720, 235), app.font_small, MUTED)
+            return
+        for index, message in enumerate(messages):
+            displayed = message
+            while app.font_small.size(displayed)[0] > 440 and len(displayed) > 4:
+                displayed = f"{displayed[:-4]}..."
+            app._draw_text(displayed, (720, 230 + index * 24), app.font_small, TEXT)
+
     @staticmethod
     def result_buttons() -> list[Button]:
         return [
@@ -116,6 +131,7 @@ class BattleScreen:
         app._draw_text("Combat", (95, 100), app.font_big, ACCENT)
         app._draw_text(self.label(app), (95, 150), app.font, MUTED)
         self.draw_cards(app)
+        self.draw_log(app)
 
         if app.battle.result is not None:
             app._draw_panel(pygame.Rect(840, 510, 340, 140), PANEL_2)

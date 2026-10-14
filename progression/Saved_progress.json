@@ -1,3 +1,4 @@
+GSAV0
 {
   "members": [
     {
@@ -9,8 +10,8 @@
       "defense": 8,
       "speed": 10,
       "level": 1,
-      "xp": 7,
-      "gold": 100,
+      "xp": 11,
+      "gold": 300,
       "weapon_primary": "fire_staff",
       "weapon_secondary": null,
       "helmet": null,
@@ -56,15 +57,19 @@
       "health_potion": 3,
       "mana_potion": 2
     },
-    "weapons": {},
+    "weapons": {
+      "iron_sword": 1
+    },
     "armors": {},
     "pets": {}
   },
   "progression": {
     "stats": {
-      "victories": 2,
-      "gold_earned": 50,
-      "quests_completed": 0
+      "victories": 5,
+      "gold_earned": 200,
+      "quests_completed": 0,
+      "wins_with_heavy": 3,
+      "wins_with_staff": 3
     },
     "quests": {
       "active": [
@@ -78,7 +83,7 @@
       "goblin_killer": {
         "progress": [
           {
-            "current": 2,
+            "current": 5,
             "target": 10
           }
         ],
@@ -105,7 +110,25 @@
         "unlocked": false,
         "reward_claimed": false
       }
-    }
+    },
+    "classes": {
+      "adventurer": {
+        "unlocked": true,
+        "mastery": 0,
+        "tier": 1
+      },
+      "knight": {
+        "unlocked": false,
+        "mastery": 0,
+        "tier": 1
+      },
+      "archer": {
+        "unlocked": false,
+        "mastery": 0,
+        "tier": 1
+      }
+    },
+    "active_class": "adventurer"
   },
   "merchant_stock": {
     "basic_merchant": {

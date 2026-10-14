@@ -62,13 +62,15 @@ Le système actuel :
 - joue automatiquement les tours des ennemis et des compagnons ;
 - permet au joueur de choisir une attaque normale ou un skill avant de
     sélectionner la carte ennemie ;
-- expose les skills déclarés par les armes équipées ; les skills de défense ou
-    de zone sont exécutés dès leur sélection ;
+- expose les skills déclarés par les armes équipées ; les skills de zone
+    attendent la sélection d'un ennemi avant de toucher tous les ennemis ;
 - permet de fuir ;
 - calcule les dégâts à partir de l'attaque et de la défense ;
 - attribue l'expérience et l'or en cas de victoire ;
 - applique les montées de niveau et les bonus de statistiques liés à l'XP ;
 - tire les drops configurés par l'ennemi et les ajoute à l'inventaire partagé ;
+- affiche un journal des actions récentes : dégâts, soins, capacités utilisées,
+    défenses et combattants vaincus ;
 - affiche la victoire, la défaite ou la fuite.
 
 Les ennemis sont décrits dans [data/enemies.json](data/enemies.json) et
@@ -282,7 +284,7 @@ Les évolutions naturelles sont :
 3. Revente et économie.
 4. Gestion avancée du groupe.
 5. Interface et polish.
-6. Ajout vrai début de partie
+6. Ajout vrai début de partie.
 7. Simulation d’équilibrage et distribution du jeu.
 
 
@@ -290,7 +292,4 @@ Les évolutions naturelles sont :
 
 
 ## En cours d'ajout:
-- Ajouter journal combat
-- Arrêter que les skills de dégats de zone s'activent tout de suite
 - Modifier chargement partie/début nouvelle partie
-- Ajout chiffrement fichier JSON de sauvegarde

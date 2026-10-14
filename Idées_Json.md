@@ -39,3 +39,10 @@ Baskerville
 # Autres Inspirations:
 - Zodique
 - Mythologies Grec, nordiques, égyptiennes, démons/Anges
+
+
+
+# Items:
+- autres popos de santé
+- popos de buff att, déf, esquive etc...
+- popo xp

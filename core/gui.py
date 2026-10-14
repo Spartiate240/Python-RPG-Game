@@ -308,6 +308,8 @@ class PygameApp:
                     feedback = self.inventory_manager.use_item(item, self.party.leader if self.party else None)
                     if feedback is not None:
                         self.status_feedback = feedback
+                        if feedback.startswith(item.get("name", item_id)):
+                            self.battle.log_message(f"{self.party.leader.name} {feedback.lower()}")
                     if feedback is not None and feedback.startswith(item.get("name", item_id)):
                         self.battle.finish_player_action()
         elif action == "select_attack":
@@ -323,13 +325,14 @@ class PygameApp:
             )
             if skill is None:
                 return
-            if getattr(skill, "target", "single_enemy") != "single_enemy":
+            target_type = getattr(skill, "target", "single_enemy")
+            if target_type in ("single_enemy", "all_enemies"):
+                self.selected_battle_action = "skill"
+                self.selected_battle_skill_id = skill_id
+            else:
                 self.battle.player_skill(skill_id)
                 self.selected_battle_action = "attack"
                 self.selected_battle_skill_id = None
-            else:
-                self.selected_battle_action = "skill"
-                self.selected_battle_skill_id = skill_id
 
     def _new_game(self) -> None:
         self.core.new_game()

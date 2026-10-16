@@ -167,5 +167,8 @@ GSAV0
         }
       }
     }
+  },
+  "profile": {
+    "name": "Goldo"
   }
 }

@@ -29,6 +29,15 @@ class LevelManager:
             levels_gained += 1
         return levels_gained
 
+    def remove_xp(self, ally: Any, percentage: int) -> int:
+        """Retire un pourcentage de la progression XP du niveau actuel."""
+        current_level = int(ally.level)
+        level_start = self.thresholds.get(current_level - 1, 0)
+        progress = max(0, int(ally.xp) - level_start)
+        lost_xp = min(progress, progress * max(0, int(percentage)) // 100)
+        ally.xp = max(level_start, int(ally.xp) - lost_xp)
+        return lost_xp
+
     def can_level_up(self, ally: Any) -> bool:
         next_level = int(ally.level) + 1
         threshold = self.thresholds.get(next_level)

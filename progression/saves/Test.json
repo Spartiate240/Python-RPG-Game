@@ -1,0 +1,142 @@
+GSAV0
+{
+  "members": [
+    {
+      "type": "player",
+      "name": "Test",
+      "hp": 80,
+      "max_hp": 100,
+      "attack": 5,
+      "defense": 0,
+      "speed": 1,
+      "level": 1,
+      "xp": 1,
+      "gold": 50,
+      "weapon_primary": null,
+      "weapon_secondary": null,
+      "helmet": null,
+      "chest": null,
+      "legs": null,
+      "boots": null,
+      "arms": null,
+      "pet": null,
+      "inventory": []
+    }
+  ],
+  "active_indexes": [
+    0
+  ],
+  "game_state": {
+    "state": "EXPLORATION",
+    "location": "village"
+  },
+  "inventory": {
+    "items": {},
+    "weapons": {},
+    "armors": {},
+    "pets": {}
+  },
+  "progression": {
+    "stats": {
+      "victories": 1,
+      "gold_earned": 50,
+      "quests_completed": 0
+    },
+    "quests": {
+      "active": [],
+      "completed": [],
+      "claimed": []
+    },
+    "titles": {
+      "goblin_killer": {
+        "progress": [
+          {
+            "current": 1,
+            "target": 10
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
+      },
+      "quest_veteran": {
+        "progress": [
+          {
+            "current": 0,
+            "target": 3
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
+      },
+      "village_hero": {
+        "progress": [
+          {
+            "current": 0,
+            "target": 10
+          }
+        ],
+        "unlocked": false,
+        "reward_claimed": false
+      }
+    },
+    "classes": {
+      "adventurer": {
+        "unlocked": true,
+        "mastery": 0,
+        "tier": 1
+      },
+      "knight": {
+        "unlocked": false,
+        "mastery": 0,
+        "tier": 1
+      },
+      "archer": {
+        "unlocked": false,
+        "mastery": 0,
+        "tier": 1
+      }
+    },
+    "active_class": "adventurer"
+  },
+  "merchant_stock": {
+    "basic_merchant": {
+      "items": {
+        "small_health_potion": {
+          "cost": 10,
+          "quantity": 5
+        },
+        "mana_potion": {
+          "cost": 15,
+          "quantity": 3
+        }
+      },
+      "weapons": {
+        "iron_sword": {
+          "cost": 50,
+          "quantity": 1
+        }
+      },
+      "armors": {
+        "leather_armor": {
+          "cost": 25,
+          "quantity": 1
+        }
+      }
+    },
+    "pet_shop": {
+      "pets": {
+        "dog": {
+          "cost": 100,
+          "quantity": 1
+        },
+        "dragon": {
+          "cost": 15000,
+          "quantity": 1
+        }
+      }
+    }
+  },
+  "profile": {
+    "name": "Test"
+  }
+}

@@ -30,7 +30,7 @@ class GameState(Enum):
 
 
 class Game:
-    def __init__(self) -> None:
+    def __init__(self, save_path: Path | None = None) -> None:
         self.state = GameState.MAIN_MENU
         self.party: Party | None = None
         self.location: str | None = None
@@ -42,15 +42,21 @@ class Game:
             "titles": {},
             "classes": {},
         }
+        self.save_path = save_path or GAME_SAVE_PATH
+        self.profile_name = "Héros"
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:
         hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1)
         return Party(members=[hero])
 
-    def new_game(self) -> None:
+    def new_game(self, profile_name: str = "Héros", save_path: Path | None = None) -> None:
         """Initialise un nouvel état de jeu prêt à être présenté par l'UI."""
+        self.profile_name = profile_name.strip() or "Héros"
+        if save_path is not None:
+            self.save_path = save_path
         self.party = self._new_party()
+        self.party.leader.name = self.profile_name
         self.state = GameState.EXPLORATION
         self.location = "village"
         self.inventory = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
@@ -64,6 +70,12 @@ class Game:
 
     def load_game(self) -> GameState:
         """Charge la sauvegarde et retourne l'état persistant de la partie."""
+        self.party, self.state = self._load_progress()
+        return self.state
+
+    def load_game_from(self, save_path: Path) -> GameState:
+        """Charge un emplacement choisi dans le menu des sauvegardes."""
+        self.save_path = save_path
         self.party, self.state = self._load_progress()
         return self.state
 
@@ -82,6 +94,7 @@ class Game:
         self.inventory = inventory
         self.progression = progression
         self.merchant_stock = merchant_stock or {}
+        self.profile_name = party.leader.name if party.leader is not None else self.profile_name
         self.state = state
         self._save_progress()
 
@@ -98,14 +111,15 @@ class Game:
         data["inventory"] = self.inventory
         data["progression"] = self.progression
         data["merchant_stock"] = self.merchant_stock
-        self._write_json(GAME_SAVE_PATH, data)
+        data["profile"] = {"name": self.profile_name}
+        self._write_json(self.save_path, data)
 
     def _load_progress(self) -> tuple[Party, GameState]:
-        if not GAME_SAVE_PATH.exists():
+        if not self.save_path.exists():
             return self._new_party(), GameState.EXPLORATION
 
         try:
-            data = self._read_json(GAME_SAVE_PATH)
+            data = self._read_json(self.save_path)
         except (json.JSONDecodeError, OSError):
             return self._new_party(), GameState.EXPLORATION
         self.location = None
@@ -121,6 +135,7 @@ class Game:
         self.inventory.setdefault("pets", {})
         self.progression = data.get("progression", self.progression)
         self.merchant_stock = data.get("merchant_stock", {})
+        self.profile_name = str(data.get("profile", {}).get("name", self.profile_name))
         try:
             state = GameState[state_name]
         except KeyError:

@@ -1,0 +1,33 @@
+{
+  "intro": {
+    "speaker": "Le chroniqueur",
+    "text": "Une nouvelle route s'ouvre devant toi. Le village attend un heros capable de traverser les terres sauvages.",
+    "choices": [
+      {"label": "Commencer l'aventure", "action": "close_dialogue"},
+      {"label": "Ecouter encore", "next": "intro_village"}
+    ]
+  },
+  "intro_village": {
+    "speaker": "Le chroniqueur",
+    "text": "Observe les regions, parle aux habitants et prepare ton groupe avant de chercher les combats.",
+    "choices": [
+      {"label": "Entrer dans le village", "action": "close_dialogue"}
+    ]
+  },
+  "merchant_basic": {
+    "speaker": "Marchand",
+    "text": "Bienvenue. Quelques potions et un peu d'equipement devraient t'aider a survivre aux premiers pas.",
+    "choices": [
+      {"label": "Voir les marchandises", "action": "open_shop"},
+      {"label": "Je reviendrai plus tard", "action": "close_dialogue"}
+    ]
+  },
+  "merchant_pet_shop": {
+    "speaker": "Marchande de compagnons",
+    "text": "Un bon compagnon change une aventure. Regarde bien leurs talents avant de depenser ton or.",
+    "choices": [
+      {"label": "Voir les compagnons", "action": "open_shop"},
+      {"label": "Pas maintenant", "action": "close_dialogue"}
+    ]
+  }
+}

@@ -27,9 +27,14 @@ Le point d'entrée est [main.py](main.py). Il crée une instance de
 
 Le menu permet de :
 
-- commencer une nouvelle partie ;
-- charger la sauvegarde existante ;
+- commencer une nouvelle partie en nommant le personnage ;
+- choisir une sauvegarde existante parmi les différents emplacements ;
 - quitter en sauvegardant la progression.
+
+Les nouvelles parties sont enregistrées dans [progression/saves](progression/saves)
+et n'écrasent pas les sauvegardes précédentes. L'ancien fichier
+[progression/Saved_progress.json](progression/Saved_progress.json) reste
+compatible et apparaît comme « Sauvegarde principale » dans la liste.
 
 ### Exploration
 
@@ -86,6 +91,16 @@ Les données des marchands se trouvent dans
 [data/merchants.json](data/merchants.json). Le stock courant est sauvegardé
 avec la partie et restauré lors du chargement. Une nouvelle partie repart du
 stock défini dans le catalogue.
+
+### Dialogues
+
+Les dialogues sont définis dans [data/dialogues.json](data/dialogues.json).
+Une nouvelle partie affiche l'introduction, et chaque marchand peut présenter
+un dialogue avant l'ouverture de sa boutique. Un dialogue contient un
+`speaker`, un `text` et une liste de choix ; un choix peut pointer vers un
+autre noeud avec `next` ou déclencher une action d'interface avec `action`.
+Ce format permet d'ajouter ensuite les conversations des compagnons, des
+quêtes et des événements sans modifier le rendu.
 
 ### État du groupe et équipement
 
@@ -155,8 +170,10 @@ core/
     progression.py            Quêtes, titres et récompenses
     shop.py                   Achats et gestion du stock marchand
     encounter.py              Création des rencontres et combats
+    save_manager.py           Liste et création des emplacements de sauvegarde
 ui/
     main_menu.py              Rendu du menu principal
+    save_menu.py              Création et sélection des sauvegardes
     exploration.py            Rendu de l'écran d'exploration
     regions.py                Rendu de la sélection des régions
     zones.py                  Rendu de la sélection des zones

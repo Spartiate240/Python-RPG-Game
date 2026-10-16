@@ -21,17 +21,21 @@ from core.inventory import InventoryManager
 from core.classes import ClassService
 from core.progression import ProgressionManager
 from core.shop import ShopService
+from core.save_manager import SaveManager
 from entities.player import Player
 from party.party import Party
+from progression.level_manager import LevelManager
 from ui.battle import BattleScreen
 from ui.exploration import ExplorationScreen
 from ui.game_over import GameOverScreen
 from ui.main_menu import MainMenuScreen
+from ui.save_menu import SaveMenuScreen
 from ui.quests import QuestsScreen
 from ui.regions import RegionsScreen
 from ui.renderer import UIRenderer
 from ui.shop import ShopScreen
 from ui.classes import ClassesScreen
+from ui.dialogue import DialogueScreen
 from ui.status import StatusScreen
 from ui.theme import PANEL, TEXT
 from ui.titles import TitlesScreen
@@ -42,6 +46,7 @@ from ui.zones import ZonesScreen
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 SCREEN_SIZE = (1280, 720)
+DEATH_XP_LOSS_PERCENT = 10
 
 # LAYOUT STATUT
 # Déplacer ces valeurs suffit à recentrer les colonnes, les boutons et le bandeau
@@ -93,6 +98,7 @@ class PygameApp:
         self.font_big = pygame.font.SysFont("dejavuserif", 40, bold=True)
         self.font_huge = pygame.font.SysFont("dejavuserif", 58, bold=True)
         self.main_menu_screen = MainMenuScreen()
+        self.save_menu_screen = SaveMenuScreen()
         self.battle_screen = BattleScreen()
         self.exploration_screen = ExplorationScreen()
         self.game_over_screen = GameOverScreen()
@@ -103,13 +109,16 @@ class PygameApp:
         self.status_screen = StatusScreen()
         self.quests_screen = QuestsScreen()
         self.titles_screen = TitlesScreen()
+        self.dialogue_screen = DialogueScreen()
         self.core = Game()
+        self.save_manager = SaveManager()
         self.state = "main_menu"
         self.party: Party | None = None
         self.location: str | None = None
         self.selected_region_id: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
+        self.defeat_summary: dict[str, int] = {"xp_lost": 0, "xp_loss_percent": DEATH_XP_LOSS_PERCENT}
         self.selected_battle_action = "attack"
         self.selected_battle_skill_id: str | None = None
         # Message court pour confirmer une action d'équipement ou de retrait.
@@ -138,6 +147,8 @@ class PygameApp:
         self.merchant_catalog = self.catalogs.merchants
         self.merchant_stock = self.catalogs.merchant_stock()
         self.selected_merchant_id: str | None = None
+        self.current_dialogue: dict[str, Any] | None = None
+        self.dialogue_return_state = "exploration"
         self.progression: dict[str, Any] = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
             "quests": {"active": [], "completed": [], "claimed": []},
@@ -176,14 +187,21 @@ class PygameApp:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.running = False
+                elif self.state == "save_menu":
+                    self.save_menu_screen.handle_key(event)
+                    if self.save_menu_screen.submit_requested():
+                        self._activate_button("create_named_game")
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self._handle_click(event.pos)
 
     def _handle_click(self, position: tuple[int, int]) -> None:
         if self.state == "main_menu":
             self._handle_buttons(position, self.main_menu_screen.buttons())
+        elif self.state == "save_menu":
+            self.save_menu_screen.click(self, position)
         elif self.state == "exploration":
             self._handle_buttons(position, self.exploration_screen.buttons())
         elif self.state == "regions":
@@ -202,6 +220,8 @@ class PygameApp:
             self._handle_buttons(position, self.quests_screen.buttons(self))
         elif self.state == "titles":
             self._handle_buttons(position, self.titles_screen.buttons())
+        elif self.state == "dialogue":
+            self._handle_buttons(position, self.dialogue_screen.buttons(self))
         elif self.state == "game_over":
             self._handle_buttons(position, self.game_over_screen.buttons())
 
@@ -213,9 +233,23 @@ class PygameApp:
     def _activate_button(self, action: str, payload: dict[str, Any] | None = None) -> None:
         payload = payload or {}
         if action == "new_game":
-            self._new_game()
+            self.save_menu_screen.open("create")
+            self.state = "save_menu"
         elif action == "load_game":
-            self._load_game()
+            self.save_menu_screen.open("load")
+            self.state = "save_menu"
+        elif action == "new_named_game":
+            self.save_menu_screen.open("create")
+        elif action == "create_named_game":
+            name = self.save_menu_screen.name.strip()
+            if name:
+                self._new_game(name, self.save_manager.create_path(name))
+        elif action == "load_slot":
+            path = payload.get("path")
+            if isinstance(path, str):
+                self._load_game(Path(path))
+        elif action == "save_back":
+            self.state = "main_menu"
         elif action == "save":
             self._save_game()
         elif action == "encounter":
@@ -246,6 +280,9 @@ class PygameApp:
         elif action.startswith("merchant:"):
             self.selected_merchant_id = action.split(":", 1)[1]
             self.status_feedback = ""
+            merchant_id = self.selected_merchant_id
+            dialogue_id = "merchant_pet_shop" if merchant_id == "pet_shop" else "merchant_basic"
+            self._open_dialogue(dialogue_id, "shop")
         elif action == "merchant_list":
             self.selected_merchant_id = None
             self.status_feedback = ""
@@ -273,6 +310,8 @@ class PygameApp:
             self.state = "status"
         elif action == "back":
             self.state = "exploration"
+        elif action == "dialogue_choice":
+            self._handle_dialogue_choice(payload.get("choice"))
         elif action == "quit":
             self._save_game()
             self.running = False
@@ -294,8 +333,9 @@ class PygameApp:
                     self.status_feedback = feedback
                 self._start_battle()
             else:
-                self.state = "game_over"
-                self.battle = None
+                self._handle_defeat()
+        elif action == "resume_after_defeat":
+            self.state = "exploration"
         elif action == "flee":
             if self.battle is not None:
                 self.battle.flee()
@@ -334,8 +374,8 @@ class PygameApp:
                 self.selected_battle_action = "attack"
                 self.selected_battle_skill_id = None
 
-    def _new_game(self) -> None:
-        self.core.new_game()
+    def _new_game(self, profile_name: str = "Héros", save_path: Path | None = None) -> None:
+        self.core.new_game(profile_name, save_path)
         self.party = self.core.party
         self.location = self.core.location
         self.selected_region_id = "greenlands"
@@ -349,10 +389,36 @@ class PygameApp:
         if feedback is not None:
             self.status_feedback = feedback
         self.battle = None
-        self.state = "exploration"
+        self._open_dialogue("intro", "exploration")
 
-    def _load_game(self) -> None:
-        loaded_state = self.core.load_game()
+    def _open_dialogue(self, dialogue_id: str, return_state: str) -> None:
+        dialogue = self.catalogs.dialogues.get(dialogue_id)
+        if dialogue is None:
+            self.state = return_state
+            return
+        self.current_dialogue = dialogue
+        self.dialogue_return_state = return_state
+        self.state = "dialogue"
+
+    def _handle_dialogue_choice(self, choice: object) -> None:
+        if not isinstance(choice, dict):
+            return
+        next_id = choice.get("next")
+        if isinstance(next_id, str):
+            dialogue = self.catalogs.dialogues.get(next_id)
+            if dialogue is not None:
+                self.current_dialogue = dialogue
+                return
+        action = choice.get("action")
+        if action == "open_shop":
+            self.current_dialogue = None
+            self.state = "shop"
+        else:
+            self.current_dialogue = None
+            self.state = self.dialogue_return_state
+
+    def _load_game(self, save_path: Path | None = None) -> None:
+        loaded_state = self.core.load_game_from(save_path) if save_path is not None else self.core.load_game()
         self.party = self.core.party
         self.location = self.core.location
         self.selected_region_id = self.catalogs.region_for_zone(self.location)
@@ -419,6 +485,22 @@ class PygameApp:
         if feedback:
             self.status_feedback = feedback
 
+    def _handle_defeat(self) -> None:
+        """Applique la pénalité de défaite avant de rendre la main au joueur."""
+        leader = self.party.leader if self.party else None
+        xp_lost = 0
+        if leader is not None:
+            xp_lost = LevelManager().remove_xp(leader, DEATH_XP_LOSS_PERCENT)
+        if self.party is not None:
+            for member in self.party.members:
+                member.heal(member.max_hp)
+        self.defeat_summary = {
+            "xp_lost": xp_lost,
+            "xp_loss_percent": DEATH_XP_LOSS_PERCENT,
+        }
+        self.state = "game_over"
+        self.battle = None
+
     @staticmethod
     def _class_condition_met(leader: Any, condition: dict[str, Any]) -> bool:
         if not condition:
@@ -452,6 +534,8 @@ class PygameApp:
         self._draw_background()
         if self.state == "main_menu":
             self.main_menu_screen.render(self)
+        elif self.state == "save_menu":
+            self.save_menu_screen.render(self)
         elif self.state == "exploration":
             self.exploration_screen.render(self)
         elif self.state == "regions":
@@ -468,6 +552,8 @@ class PygameApp:
             self.quests_screen.render(self)
         elif self.state == "titles":
             self.titles_screen.render(self)
+        elif self.state == "dialogue":
+            self.dialogue_screen.render(self)
         elif self.state == "battle":
             self.battle_screen.render(self)
         elif self.state == "game_over":

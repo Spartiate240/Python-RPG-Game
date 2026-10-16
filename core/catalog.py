@@ -25,6 +25,7 @@ class Catalogs:
         self.classes = self.load_classes()
         self.regions = self.load("regions.json")
         self.merchants = self.load("merchants.json")
+        self.dialogues = self.load_dialogues()
 
     def load(self, filename: str) -> dict[str, dict[str, Any]]:
         path = self.data_dir / filename
@@ -45,6 +46,15 @@ class Catalogs:
             for entry in data
             if isinstance(entry, dict) and entry.get("line_id")
         }
+
+    def load_dialogues(self) -> dict[str, dict[str, Any]]:
+        path = self.data_dir / "dialogues.json"
+        if not path.exists():
+            return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        return {str(dialogue_id): entry for dialogue_id, entry in data.items() if isinstance(entry, dict)}
 
     def region_for_zone(self, zone_id: str | None) -> str | None:
         if zone_id is None:

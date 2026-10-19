@@ -1,261 +1,54 @@
 [
   {
-    "line_id": "adventurer",
-    "name": "Aventurier",
-    "default": true,
-    "unlock": null,
-    "mastery_gain": {
-      "full_if": null
-    },
+    "id": "necromancer",
+    "name": "Nécromancien",
+    "emblem": "skull",
+    "description": "Un maître des arts funestes qui arrache des ombres aux ennemis vaincus.",
+    "base_stats": {"max_hp": 24, "attack": 7, "defense": 3, "speed": 4},
+    "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 1},
     "tiers": [
-      {
-        "tier": 1,
-        "name": "Adventurer",
-        "title": "Voyageur",
-        "mastery_required": 0,
-        "trial_quest": null,
-        "requirements": null,
-        "sprite": "assets/sprites/classes/adventurer.gif",
-        "effects": []
-      }
+      {"tier": 1, "name": "Adepte", "growth_multiplier": 1.0, "stat_bonus": {}, "can_extract": false, "shadow_slots": 0, "requirements": {}},
+      {"tier": 2, "name": "Nécromancien", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3}, "can_extract": true, "shadow_slots": 1, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "necromancer_trial"}},
+      {"tier": 3, "name": "Seigneur des morts", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 5, "defense": 3}, "can_extract": true, "shadow_slots": 3, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "necromancer_trial_2"}}
     ]
   },
   {
-    "line_id": "knight",
-    "name": "Chevalier",
-    "default": false,
-    "unlock": {
-      "description": "Pour devenir un chevalier, vous devez avoir aider les populations et avoir l'habileté de porter une armure lourde.",
-      "trainer_quest": "knight_initiation",
-      "level": 5,
-      "quests_completed": 5,
-      "wins_with": {
-        "armor_type": "heavy",
-        "quantity": 10
-      }
-    },
-    "mastery_gain": {
-      "full_if": {
-        "armor_type": "heavy"
-      }
-    },
+    "id": "warrior",
+    "name": "Guerrier",
+    "emblem": "sword",
+    "description": "Un combattant robuste, maître des armes et des armures lourdes.",
+    "base_stats": {"max_hp": 30, "attack": 8, "defense": 6, "speed": 4},
+    "growth": {"max_hp": 6, "attack": 2, "defense": 2, "speed": 1},
     "tiers": [
-      {
-        "tier": 1,
-        "name": "Knight Apprentice",
-        "title": "Écuyer",
-        "mastery_required": 0,
-        "trial_quest": null,
-        "requirements": null,
-        "sprite": "assets/sprites/classes/knight_1.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "heavy"
-            },
-            "stats": {
-              "defense": 2,
-              "health": 5
-            }
-          }
-        ]
-      },
-      {
-        "tier": 2,
-        "name": "Knight",
-        "title": "Protecteur du peuple",
-        "mastery_required": 200,
-        "trial_quest": null,
-        "requirements": {
-          "description": "Un chevalier se doit de protéger le peuple : il doit avoir mené de nombreuses quêtes à leur terme.",
-          "level": 10,
-          "quests_completed": 12,
-          "wins_with": {
-            "armor_type": "heavy",
-            "quantity": 30
-          }
-        },
-        "sprite": "assets/sprites/classes/knight_2.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "heavy"
-            },
-            "stats": {
-              "defense": 2,
-              "health": 5
-            }
-          }
-        ]
-      },
-      {
-        "tier": 3,
-        "name": "Champion",
-        "title": "Champion du royaume",
-        "mastery_required": 600,
-        "trial_quest": "champion_trial",
-        "requirements": {
-          "description": "Seuls les chevaliers dont les exploits sont connus de tout le royaume peuvent prétendre au titre de champion.",
-          "level": 20,
-          "quests_completed": 30,
-          "wins_with": {
-            "armor_type": "heavy",
-            "quantity": 100
-          }
-        },
-        "sprite": "assets/sprites/classes/knight_3.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "heavy"
-            },
-            "stats": {
-              "defense": 3,
-              "health": 10
-            }
-          },
-          {
-            "requires": {},
-            "passive": {
-              "trigger": "on_turn_start",
-              "effect": "regen_percent_health",
-              "value": 0.02
-            }
-          }
-        ]
-      }
+      {"tier": 1, "name": "Guerrier", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
+      {"tier": 2, "name": "Chevalier", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 10, "defense": 3}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "warrior_trial"}},
+      {"tier": 3, "name": "Paladin", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 20, "attack": 4, "defense": 5}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "warrior_trial_2"}}
     ]
   },
   {
-    "line_id": "archer",
-    "name": "Archer",
-    "default": false,
-    "unlock": {
-      "description": "Un archer doit s'entraîner à utiliser un arc.",
-      "trainer_quest": "archer_initiation",
-      "level": 5,
-      "quests_completed": 2,
-      "wins_with": {
-        "weapon_type": "bow",
-        "quantity": 20
-      }
-    },
-    "mastery_gain": {
-      "full_if": {
-        "weapon_type": "bow"
-      }
-    },
+    "id": "mage",
+    "name": "Mage",
+    "emblem": "staff",
+    "description": "Un érudit des arcanes, fragile mais redoutable à distance.",
+    "base_stats": {"max_hp": 22, "attack": 10, "defense": 3, "speed": 5},
+    "growth": {"max_hp": 4, "attack": 3, "defense": 1, "speed": 2},
     "tiers": [
-      {
-        "tier": 1,
-        "name": "Archer Beginner",
-        "title": "Tireur novice",
-        "mastery_required": 0,
-        "trial_quest": null,
-        "requirements": null,
-        "sprite": "assets/sprites/classes/archer_1.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "light"
-            },
-            "stats": {
-              "speed": 2,
-              "health": 1
-            }
-          },
-          {
-            "requires": {
-              "weapon_type": "bow"
-            },
-            "stats": {
-              "damage": 2
-            }
-          }
-        ]
-      },
-      {
-        "tier": 2,
-        "name": "Archer",
-        "title": "Œil de faucon",
-        "mastery_required": 200,
-        "trial_quest": null,
-        "requirements": {
-          "description": "Un archer confirmé a perfectionné sa visée sur de nombreux combats.",
-          "level": 10,
-          "quests_completed": 6,
-          "wins_with": {
-            "weapon_type": "bow",
-            "quantity": 50
-          }
-        },
-        "sprite": "assets/sprites/classes/archer_2.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "light"
-            },
-            "stats": {
-              "speed": 1,
-              "health": 2
-            }
-          },
-          {
-            "requires": {
-              "weapon_type": "bow"
-            },
-            "stats": {
-              "damage": 2
-            }
-          }
-        ]
-      },
-      {
-        "tier": 3,
-        "name": "Ranger",
-        "title": "Maître des bois",
-        "mastery_required": 600,
-        "trial_quest": "ranger_trial",
-        "requirements": {
-          "description": "Un ranger maîtrise l'arc à la perfection et connaît les terres sauvages.",
-          "level": 20,
-          "quests_completed": 12,
-          "wins_with": {
-            "weapon_type": "bow",
-            "quantity": 150
-          }
-        },
-        "sprite": "assets/sprites/classes/archer_3.gif",
-        "effects": [
-          {
-            "requires": {
-              "armor_type": "light"
-            },
-            "stats": {
-              "speed": 2,
-              "health": 3
-            }
-          },
-          {
-            "requires": {
-              "weapon_type": "bow"
-            },
-            "stats": {
-              "damage": 3
-            }
-          },
-          {
-            "requires": {
-              "weapon_type": "bow"
-            },
-            "passive": {
-              "trigger": "on_attack",
-              "effect": "extra_attack",
-              "chance": 0.2
-            }
-          }
-        ]
-      }
+      {"tier": 1, "name": "Mage", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
+      {"tier": 2, "name": "Arcaniste", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 5, "attack": 4, "speed": 2}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "mage_trial"}},
+      {"tier": 3, "name": "Archimage", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 10, "attack": 8, "speed": 4}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "mage_trial_2"}}
+    ]
+  },
+  {
+    "id": "ranger",
+    "name": "Rôdeur",
+    "emblem": "bow",
+    "description": "Un éclaireur rapide, précis et familier des terres sauvages.",
+    "base_stats": {"max_hp": 25, "attack": 9, "defense": 4, "speed": 7},
+    "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 3},
+    "tiers": [
+      {"tier": 1, "name": "Rôdeur", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
+      {"tier": 2, "name": "Éclaireur", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3, "speed": 3}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "ranger_trial"}},
+      {"tier": 3, "name": "Maître des bois", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 6, "speed": 6}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "ranger_trial_2"}}
     ]
   }
 ]

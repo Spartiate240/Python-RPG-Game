@@ -38,7 +38,10 @@ class Game:
         self.merchant_stock: dict = {}
         self.progression: dict = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
-            "quests": {"active": [], "completed": [], "claimed": []},
+            "quests": {
+                "active": [], "completed": [], "claimed": [], "baselines": {},
+                "completions": {}, "daily_claimed": [], "last_daily_reset": None,
+            },
             "titles": {},
             "classes": {},
         }
@@ -47,7 +50,7 @@ class Game:
 
     # ---- Persistance --------------------------------------------------
     def _new_party(self) -> Party:
-        hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1)
+        hero = Player(name="Héros", max_hp=10, attack=1, defense=0, speed=1, class_id="warrior", tier=1)
         return Party(members=[hero])
 
     def new_game(self, profile_name: str = "Héros", save_path: Path | None = None) -> None:
@@ -63,7 +66,10 @@ class Game:
         self.merchant_stock = {}
         self.progression = {
             "stats": {"victories": 0, "gold_earned": 0, "quests_completed": 0},
-            "quests": {"active": [], "completed": [], "claimed": []},
+            "quests": {
+                "active": [], "completed": [], "claimed": [], "baselines": {},
+                "completions": {}, "daily_claimed": [], "last_daily_reset": None,
+            },
             "titles": {},
             "classes": {},
         }
@@ -134,6 +140,14 @@ class Game:
         self.inventory = data.get("inventory", {"items": {}, "weapons": {}, "armors": {}, "pets": {}})
         self.inventory.setdefault("pets", {})
         self.progression = data.get("progression", self.progression)
+        quests = self.progression.setdefault("quests", {})
+        quests.setdefault("active", [])
+        quests.setdefault("completed", [])
+        quests.setdefault("claimed", [])
+        quests.setdefault("baselines", {})
+        quests.setdefault("completions", {})
+        quests.setdefault("daily_claimed", [])
+        quests.setdefault("last_daily_reset", None)
         self.merchant_stock = data.get("merchant_stock", {})
         self.profile_name = str(data.get("profile", {}).get("name", self.profile_name))
         try:
@@ -141,7 +155,18 @@ class Game:
         except KeyError:
             state = GameState.EXPLORATION
 
-        return Party.from_dict(data), state
+        party = Party.from_dict(data)
+        self._migrate_party(party)
+        return party, state
+
+    @staticmethod
+    def _migrate_party(party: Party) -> None:
+        """Ajoute les champs de classe aux sauvegardes du format historique."""
+        for member in party.members:
+            if not hasattr(member, "class_id"):
+                member.class_id = "warrior"
+            if not hasattr(member, "tier"):
+                member.tier = 1
 
     @staticmethod
     def _write_json(path: Path, data: dict) -> None:

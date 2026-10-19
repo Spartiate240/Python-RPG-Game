@@ -33,3 +33,11 @@ class EncounterService:
             [self.catalogs.enemies.get(enemy_id, {})],
             self.catalogs.skills,
         )
+
+    def start_battle_against(self, party: Party, enemy_id: str) -> Battle:
+        """Construit une rencontre deterministe, notamment pour une evaluation."""
+        enemy_data = self.catalogs.enemies.get(enemy_id)
+        if enemy_data is None:
+            raise ValueError(f"Ennemi inconnu : {enemy_id}")
+        enemy = Enemy.from_id(enemy_id)
+        return Battle(party, [enemy], [enemy_data], self.catalogs.skills)

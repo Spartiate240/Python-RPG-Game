@@ -8,7 +8,7 @@ from party.party import Party
 
 
 class ClassService:
-    """Expose l'etat et les prerequis des classes du catalogue."""
+    """Gère la classe choisie et les tiers des membres du groupe."""
 
     def __init__(self, class_catalog: dict[str, dict[str, Any]], quest_catalog: dict[str, dict[str, Any]]) -> None:
         self.class_catalog = class_catalog
@@ -19,23 +19,17 @@ class ClassService:
     def bind(self, party: Party | None, progression: dict[str, Any]) -> None:
         self.party = party
         self.progression = progression
-        states = self.progression.setdefault("classes", {})
-        self.progression.setdefault("active_class", "adventurer")
-        for class_id, class_data in self.class_catalog.items():
-            state = states.setdefault(class_id, {})
-            state.setdefault("unlocked", bool(class_data.get("default", False)))
-            state.setdefault("mastery", 0)
-            state.setdefault("tier", 1)
-            if class_data.get("default") and not self.progression.get("active_class"):
-                self.progression["active_class"] = class_id
-            for member in self.party.members if self.party else []:
-                member.bind_classes(self.class_catalog, self.progression)
+        self.progression.setdefault("classes", {})
+        for member in self.party.members if self.party else []:
+            if member.class_id not in self.class_catalog:
+                member.class_id = "warrior"
+                member.tier = 1
+            member.bind_classes(self.class_catalog, self.progression)
 
     def state(self, class_id: str) -> dict[str, Any]:
-        return self.progression.setdefault("classes", {}).setdefault(
-            class_id,
-            {"unlocked": False, "mastery": 0, "tier": 1},
-        )
+        member = self.party.leader if self.party else None
+        selected = member is not None and member.class_id == class_id
+        return {"unlocked": selected, "tier": member.tier if selected else 1}
 
     def _requirements(self, class_id: str, unlock: dict[str, Any] | None = None) -> list[str]:
         class_data = self.class_catalog.get(class_id, {})
@@ -71,25 +65,20 @@ class ClassService:
         return requirements
 
     def is_available(self, class_id: str) -> bool:
-        state = self.state(class_id)
-        class_data = self.class_catalog.get(class_id, {})
-        return bool(state.get("unlocked")) or bool(class_data.get("default")) or not self._requirements(class_id)
+        return class_id in self.class_catalog
+
+    def choose(self, class_id: str) -> str:
+        if class_id not in self.class_catalog:
+            return "Cette classe n'existe pas."
+        if self.party is None or self.party.leader is None:
+            return "Aucun personnage principal disponible."
+        leader = self.party.leader
+        leader.set_class(class_id, 1, preserve_hp_ratio=False)
+        leader.bind_classes(self.class_catalog, self.progression)
+        return f"Classe choisie : {self.class_catalog[class_id].get('name', class_id)}."
 
     def learn(self, class_id: str) -> str:
-        class_data = self.class_catalog.get(class_id)
-        if class_data is None:
-            return "Cette classe n'existe pas."
-        state = self.state(class_id)
-        if state.get("unlocked"):
-            return f"Classe déjà apprise : {class_data.get('name', class_id)}."
-        requirements = self._requirements(class_id)
-        if requirements:
-            return "Prérequis manquants : " + ", ".join(requirements) + "."
-        state["unlocked"] = True
-        self.progression["active_class"] = class_id
-        for member in self.party.members if self.party else []:
-            member.bind_classes(self.class_catalog, self.progression)
-        return f"Classe apprise : {class_data.get('name', class_id)}."
+        return self.choose(class_id)
 
     def _condition_requirements(self, requirements: dict[str, Any]) -> list[str]:
         if not requirements:
@@ -100,23 +89,7 @@ class ClassService:
         return self._requirements(class_id, requirements)
 
     def gain_mastery(self, amount: int = 0) -> str | None:
-        class_id = self.progression.get("active_class")
-        if not class_id or not self.state(class_id).get("unlocked"):
-            return None
-        state = self.state(class_id)
-        state["mastery"] = int(state.get("mastery", 0)) + max(0, int(amount))
-        class_data = self.class_catalog.get(class_id, {})
-        tiers = class_data.get("tiers", [])
-        message = None
-        while int(state.get("tier", 1)) < len(tiers):
-            next_tier = tiers[int(state["tier"])]
-            if int(state["mastery"]) < int(next_tier.get("mastery_required", 0)):
-                break
-            if self._condition_requirements(next_tier.get("requirements") or {}):
-                break
-            state["tier"] = int(state["tier"]) + 1
-            message = f"Nouveau palier : {next_tier.get('name', class_id)}."
-        return message
+        return None
 
     def requirements(self, class_id: str) -> list[str]:
         if self.state(class_id).get("unlocked") or self.class_catalog.get(class_id, {}).get("default"):

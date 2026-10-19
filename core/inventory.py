@@ -104,6 +104,20 @@ class InventoryManager:
             "helmet", "chest", "legs", "boots", "arms"
         }
 
+    def equip_restriction_reason(self, item: object | None, member: Any | None = None) -> str | None:
+        member = member or self.selected_member()
+        if item is None or member is None:
+            return None
+        allowed_classes = self.item_stat(item, "allowed_classes") or []
+        if allowed_classes and member.class_id not in allowed_classes:
+            labels = {"warrior": "guerriers", "mage": "mages", "ranger": "rôdeurs"}
+            names = ", ".join(labels.get(str(class_id), str(class_id)) for class_id in allowed_classes)
+            return f"Réservé aux {names}"
+        min_tier = self.item_stat(item, "min_tier")
+        if min_tier is not None and int(member.tier) < int(min_tier):
+            return f"Tier {min_tier} requis"
+        return None
+
     def add_shared_item(self, item: object | None) -> None:
         item_id = self.item_id(item)
         if item_id is None:
@@ -155,6 +169,10 @@ class InventoryManager:
         player = self.selected_member()
         if player is None or item is None or self.item_id(item) is None:
             return None
+
+        restriction = self.equip_restriction_reason(item, player)
+        if restriction is not None:
+            return restriction
 
         if item in player.inventory:
             player.inventory.remove(item)

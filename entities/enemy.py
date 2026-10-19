@@ -27,12 +27,16 @@ class Enemy(Combatant):
         gold_reward: int = 0,
         loot_table: list[dict] | None = None,
         gold_table: list[dict] | None = None,
+        level: int = 1,
+        sprite_path: str | None = None,
     ) -> None:
         super().__init__(name, max_hp, attack, defense, speed)
         self.xp_reward = xp_reward
         self.gold_reward = gold_reward
         self.loot_table = loot_table or []
         self.gold_table = gold_table or []
+        self.level = int(level)
+        self.sprite_path = sprite_path
 
     # ---- Chargement depuis JSON -----------------------------------
     @classmethod
@@ -80,6 +84,8 @@ class Enemy(Combatant):
             gold_reward=gold_reward,
             loot_table=loot_table,
             gold_table=gold_table,
+            level=int(payload.get("level", 1)),
+            sprite_path=payload.get("sprite"),
         )
 
     def roll_loot(self) -> list[str]:

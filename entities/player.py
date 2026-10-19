@@ -61,9 +61,13 @@ class Player(Ally):
         xp: int = 0,
         gold: int = 0,
         inventory: list["Item"] | None = None,
+        rank: str = "iron",
+        class_id: str = "warrior",
+        tier: int = 1,
     ) -> None:
-        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory)
+        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory, class_id, tier)
         self.gold = gold
+        self.rank = rank
 
     # ---- Inventaire / économie -------------------------------------
     def add_item(self, item: "Item") -> None:
@@ -96,6 +100,9 @@ class Player(Ally):
             "level": self.level,
             "xp": self.xp,
             "gold": self.gold,
+            "rank": self.rank,
+            "class_id": self.class_id,
+            "tier": self.tier,
             "weapon_primary": _item_id(self.weapon_primary),
             "weapon_secondary": _item_id(self.weapon_secondary),
             "helmet": _item_id(self.helmet),
@@ -121,7 +128,12 @@ class Player(Ally):
             level=data["level"],
             xp=data["xp"],
             gold=data["gold"],
+            rank=data.get("rank", "iron"),
+            class_id=data.get("class_id", "warrior"),
+            tier=data.get("tier", 1),
         )
+        if data.get("max_hp"):
+            player._saved_hp_ratio = max(0.0, min(1.0, int(data.get("hp", data["max_hp"])) / int(data["max_hp"])))
         player.hp = data["hp"]
         player.weapon_primary = _resolve_item(data.get("weapon_primary"))
         player.weapon_secondary = _resolve_item(data.get("weapon_secondary"))

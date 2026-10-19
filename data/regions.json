@@ -27,7 +27,8 @@
         "id": "crypt",
         "name": "Crypte oubliée",
         "description": "Des couloirs froids hantés par les morts.",
-        "enemies": ["skeleton"]
+        "enemies": ["skeleton"],
+        "required_rank": "bronze"
       }
     ]
   }

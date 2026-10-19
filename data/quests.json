@@ -1,6 +1,7 @@
 [
     {
         "id": "goblin_menace",
+        "type": "repeatable",
         "name": "Menace gobeline",
         "description": "Remportez dix combats contre les menaces qui entourent le village.",
         "conditions": {"type": "victories", "target": 10},
@@ -8,9 +9,18 @@
     },
     {
         "id": "stolen_artifact",
+        "type": "unique",
         "name": "Artefact vole",
         "description": "Remportez cinq combats et rapportez la paix au musee.",
         "conditions": {"type": "victories", "target": 5},
         "rewards": {"gold": 200, "xp": 800}
+    },
+    {
+        "id": "daily_patrol",
+        "type": "daily",
+        "name": "Patrouille du jour",
+        "description": "Remportez un combat pour sécuriser les abords du village aujourd'hui.",
+        "conditions": {"type": "victories", "target": 1},
+        "rewards": {"gold": 30, "xp": 100}
     }
 ]

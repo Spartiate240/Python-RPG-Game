@@ -13,7 +13,7 @@ from ui.widgets import Button
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-UI_DIR = ROOT_DIR / "data" / "assets" / "sprites" / "UI"
+UI_DIR = ROOT_DIR / "UI_ignore"
 SCREEN_SIZE = (1280, 720)
 
 
@@ -22,6 +22,7 @@ class UIRenderer:
 
     def __init__(self, app: Any) -> None:
         self.app = app
+        self.shadow_sprite_cache: dict[tuple[str, tuple[int, int]], pygame.Surface] = {}
 
     def draw_background(self) -> None:
         self.app.screen.fill(BG)
@@ -87,6 +88,19 @@ class UIRenderer:
         surface.blit(label, label.get_rect(center=surface.get_rect().center))
         self.app.sprite_cache[key] = surface
         return surface
+
+    def shadow_sprite(self, shadow: Any, size: tuple[int, int]) -> pygame.Surface:
+        key = (str(getattr(shadow, "enemy_id", "shadow")), size)
+        if key in self.shadow_sprite_cache:
+            return self.shadow_sprite_cache[key]
+        source = self.load_sprite(getattr(shadow, "sprite_path", None), size, "Ombre")
+        tinted = source.copy()
+        tinted.fill((70, 50, 130), special_flags=pygame.BLEND_RGB_MULT)
+        mask = pygame.mask.from_surface(tinted)
+        outline = mask.outline()
+        pygame.draw.lines(tinted, (160, 100, 230), True, outline, 3)
+        self.shadow_sprite_cache[key] = tinted
+        return tinted
 
     def item_sprite_path(self, item: object | None) -> str | None:
         if item is None:

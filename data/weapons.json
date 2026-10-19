@@ -12,6 +12,7 @@
     "rarity": "common",
     "value": 50,
     "skills": ["slash", "parry"],
+    "allowed_classes": ["warrior"],
     "sprite": "assets/sprites/weapons/iron_sword.png"
   },
   {
@@ -27,6 +28,24 @@
     "rarity": "rare",
     "value": 320,
     "skills": ["fireball", "flame_wave"],
+    "allowed_classes": ["mage"],
     "sprite": "assets/sprites/weapons/fire_staff.png"
+  },
+  {
+    "id": "hunter_bow",
+    "name": "Arc du pisteur",
+    "type": "bow",
+    "slot": "weapon",
+    "damage": 3,
+    "speed": 1.0,
+    "crit_chance": 0,
+    "crit_damage": 0,
+    "level_required": 5,
+    "rarity": "rare",
+    "value": 240,
+    "skills": ["bone_shot"],
+    "allowed_classes": ["ranger"],
+    "min_tier": 2,
+    "sprite": "assets/sprites/weapons/hunter_bow.png"
   }
 ]

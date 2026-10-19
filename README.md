@@ -121,20 +121,45 @@ Les potions de soin peuvent être utilisées hors combat et pendant un combat.
 Elles consomment une unité de l'inventaire et restaurent les PV de la cible.
 Les modèles génériques sont définis dans [items/base.py](items/base.py).
 
+Chaque membre possède une classe (`warrior`, `mage` ou `ranger`) et un tier.
+Les statistiques sont recalculées depuis [data/classes.json](data/classes.json)
+avec la base de classe, la croissance par niveau, le multiplicateur du tier,
+les bonus fixes et l'équipement. Une nouvelle partie demande la classe du
+héros ; les compagnons reçoivent leur classe depuis leurs données. Les champs
+`allowed_classes` et `min_tier` des armes et armures sont optionnels : leur
+absence signifie qu'aucune restriction ne s'applique.
+
 ### Quêtes et titres
 
 Le tableau des quêtes permet d'accepter une quête puis de réclamer sa
-récompense lorsque ses conditions sont remplies. Les conditions actuellement
-prises en charge sont :
+récompense lorsque ses conditions sont remplies. Chaque quête possède un type :
+`unique` (valeur historique par défaut), `repeatable` ou `daily`. Les quêtes
+répétables redeviennent disponibles après réclamation et comptent leurs
+accomplissements. Les quêtes journalières sont réinitialisées au changement de
+jour civil et ne peuvent être réclamées qu'une fois par jour. Pour ces deux
+types, les statistiques de victoires, d'or et de quêtes sont mesurées depuis
+l'acceptation ; le niveau reste une condition absolue.
+
+Les conditions actuellement prises en charge sont :
 
 - nombre de victoires ;
 - or gagné ;
 - quêtes terminées ;
-- niveau du chef de groupe.
+- niveau du chef de groupe ;
+- ennemi précis vaincu ;
+- rang minimum du chef de groupe.
+
+Les épreuves de tier sont ajoutées au chargement du catalogue à partir de
+`classes.json`. Elles demandent un niveau, un rang et la défaite d'un ennemi
+d'épreuve ; leur récompense `tier_up` applique immédiatement le nouveau
+multiplicateur de croissance et affiche la cérémonie de promotion.
 
 Les titres suivent ces mêmes statistiques. Certains titres peuvent débloquer
 un compagnon, comme le Gardien du village. Les récompenses peuvent inclure de
-l'or, de l'expérience, des objets ou un compagnon.
+de l'or, de l'expérience, des objets, un compagnon ou un nouveau rang
+d'aventurier. Le chef commence au rang Fer. Les rangs suivants sont proposés
+par une quête d'évaluation quand le niveau requis est atteint ; ils ne montent
+jamais automatiquement.
 
 La logique correspondante se trouve dans
 [core/progression.py](core/progression.py). Les catalogues sont définis dans
@@ -225,12 +250,25 @@ délégués aux modules du package [ui](ui). Les achats sont gérés par
 calculées par [core/battle.py](core/battle.py). `PygameApp` conserve donc la
 coordination sans porter le rendu détaillé ni la logique métier spécialisée.
 
+L'écran de cérémonie de promotion est fourni par
+[ui/ceremony.py](ui/ceremony.py). Les rangs et leurs évaluations sont déclarés
+dans [data/adventurerer_rank.json](data/adventurerer_rank.json) ; le catalogue
+ajoute les quêtes d'évaluation correspondantes au chargement.
+
 ### `core/catalog.py`
 
 `Catalogs` charge les fichiers JSON et expose les catalogues des ennemis,
 objets, armes, armures, familiers, quêtes, titres, régions et marchands. Il
 reconstruit également le stock initial des marchands et fournit les recherches
 de régions et de zones.
+
+## État actuel et limites connues
+
+Le système de rangs couvre Fer, Bronze, Argent, Or, Mithril et Adamantite. Les
+ennemis d'évaluation n'ont pas encore de sprites dédiés : le moteur affiche un
+placeholder propre en attendant les fichiers indiqués dans leur champ `sprite`.
+Les évaluations sont des combats uniques contre un seul ennemi et les rangs ne
+restreignent pas les classes ni l'équipement.
 
 ### `core/shop.py` et `core/encounter.py`
 
@@ -291,6 +329,19 @@ limites actuelles sont :
 - les drops dont l'identifiant est absent des catalogues sont ignorés ;
 - les effets textuels de certains titres ne modifient pas encore les règles
     de combat.
+- le reset journalier utilise le jour civil local de la machine ; il ne gère
+    pas encore de fuseau horaire ou d'heure serveur.
+- les notes du tableau affichent les trois premières quêtes du catalogue.
+- les ennemis d'épreuve de classe utilisent encore des placeholders tant que
+    leurs sprites dédiés ne sont pas ajoutés ; leurs chemins sont déjà déclarés
+    dans `data/enemies.json`.
+- les compétences de classe et les effets passifs de l'ancien prototype de
+    maîtrise ne font pas partie du système de classes actuel.
+- le nécromancien peut extraire trois fois une ombre après une victoire à
+    partir du tier 2 ; les ombres assignées peuvent être invoquées en combat
+    et reviennent avec tous leurs PV après la rencontre.
+- les ombres n'ont pas de progression propre : elles ne gagnent pas d'XP et
+    ne possèdent pas de rang.
 
 ## Pistes d'évolution
 

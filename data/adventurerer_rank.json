@@ -1,0 +1,44 @@
+[
+  {
+    "id": "iron",
+    "name": "Fer",
+    "color": [126, 132, 138],
+    "min_level": 1,
+    "evaluation_enemy": null
+  },
+  {
+    "id": "bronze",
+    "name": "Bronze",
+    "color": [166, 104, 61],
+    "min_level": 3,
+    "evaluation_enemy": "bronze_guardian"
+  },
+  {
+    "id": "silver",
+    "name": "Argent",
+    "color": [190, 198, 207],
+    "min_level": 6,
+    "evaluation_enemy": "silver_champion"
+  },
+  {
+    "id": "gold",
+    "name": "Or",
+    "color": [225, 179, 64],
+    "min_level": 10,
+    "evaluation_enemy": "gold_colossus"
+  },
+  {
+    "id": "mithril",
+    "name": "Mithril",
+    "color": [157, 211, 231],
+    "min_level": 15,
+    "evaluation_enemy": "mithril_sentinel"
+  },
+  {
+    "id": "adamantite",
+    "name": "Adamantite",
+    "color": [103, 55, 120],
+    "min_level": 20,
+    "evaluation_enemy": "adamantite_overlord"
+  }
+]

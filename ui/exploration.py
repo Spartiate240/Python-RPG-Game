@@ -8,10 +8,15 @@ import pygame
 
 from ui.theme import ACCENT, ACCENT_2, MUTED, PANEL, PANEL_2, SUCCESS, TEXT
 from ui.widgets import Button
+from ui.ceremony import draw_rank_badge
 
 
 class ExplorationScreen:
     """Construit le rendu de l'exploration depuis l'etat de l'application."""
+
+    @staticmethod
+    def rank_badge_rect(member_rect: pygame.Rect) -> pygame.Rect:
+        return pygame.Rect(member_rect.right - 68, member_rect.y - 1, 52, 52)
 
     @staticmethod
     def buttons() -> list[Button]:
@@ -22,8 +27,9 @@ class ExplorationScreen:
             Button("Tableau des quêtes", pygame.Rect(800, 375, 320, 48), "quests", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Titres", pygame.Rect(800, 425, 320, 48), "titles", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Inventaire", pygame.Rect(800, 475, 320, 48), "status", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Sauvegarder", pygame.Rect(800, 525, 320, 48), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Sauvegarder et quitter", pygame.Rect(800, 575, 320, 48), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Changer de classe", pygame.Rect(800, 525, 320, 48), "classes", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Sauvegarder", pygame.Rect(800, 575, 155, 48), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Quitter", pygame.Rect(965, 575, 155, 48), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
 
     @staticmethod
@@ -38,12 +44,29 @@ class ExplorationScreen:
             sprite = app._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
             app.screen.blit(sprite, (rect.x + 14, rect.y + 15))
             app._draw_text(member.name, (rect.x + 82, rect.y + 10), app.font, TEXT)
+            if member is app.party.leader:
+                badge_rect = ExplorationScreen.rank_badge_rect(rect)
+                draw_rank_badge(app, badge_rect.center, member.rank, 26)
             app._draw_text(
                 f"HP {member.hp}/{member.max_hp}  ATQ {getattr(member, 'total_attack', member.attack)}  DEF {getattr(member, 'total_defense', member.defense)}",
                 (rect.x + 82, rect.y + 42),
                 app.font_small,
                 MUTED,
             )
+
+        leader = app.party.leader
+        if leader is not None and app.party.members:
+            leader_rect = pygame.Rect(x, y, 430, 84)
+            badge_rect = ExplorationScreen.rank_badge_rect(leader_rect)
+            if badge_rect.collidepoint(pygame.mouse.get_pos()):
+                rank = app.catalogs.ranks.get(getattr(leader, "rank", "iron"), {})
+                tooltip = pygame.Rect(badge_rect.x - 155, badge_rect.bottom + 8, 205, 64)
+                surface = pygame.Surface(tooltip.size, pygame.SRCALPHA)
+                surface.fill((190, 151, 91, 250))
+                pygame.draw.rect(surface, (105, 66, 32), surface.get_rect(), width=3, border_radius=5)
+                label = app.font_small.render(f"Rang : {rank.get('name', 'Fer')}", True, (58, 37, 20))
+                surface.blit(label, label.get_rect(center=(tooltip.width // 2, tooltip.height // 2)))
+                app.screen.blit(surface, tooltip.topleft)
 
     def render(self, app: Any) -> None:
         app._draw_panel(pygame.Rect(50, 60, 580, 620), PANEL)

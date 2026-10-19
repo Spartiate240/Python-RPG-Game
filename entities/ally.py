@@ -28,10 +28,20 @@ class Ally(Combatant):
         level: int = 1,
         xp: int = 0,
         inventory: list[Any] | None = None,
+        class_id: str = "warrior",
+        tier: int = 1,
     ) -> None:
         super().__init__(name, max_hp, attack, defense, speed)
+        self._fallback_stats = {
+            "max_hp": int(max_hp),
+            "attack": int(attack),
+            "defense": int(defense),
+            "speed": int(speed),
+        }
         self.level = level
         self.xp = xp
+        self.class_id = class_id
+        self.tier = max(1, int(tier))
         self.inventory: list[Any] = inventory or []
 
         self.weapon_primary: Any | None = None
@@ -45,6 +55,64 @@ class Ally(Combatant):
         self.skills: list["Skill"] = []
         self.class_catalog: dict[str, dict[str, Any]] = {}
         self.class_progression: dict[str, Any] = {}
+
+    @property
+    def class_data(self) -> dict[str, Any]:
+        return self.class_catalog.get(self.class_id, {})
+
+    @property
+    def tier_data(self) -> dict[str, Any]:
+        tiers = self.class_data.get("tiers", [])
+        index = min(max(self.tier - 1, 0), len(tiers) - 1)
+        return tiers[index] if tiers else {}
+
+    @property
+    def class_name(self) -> str:
+        return str(self.class_data.get("name", self.class_id))
+
+    @property
+    def tier_name(self) -> str:
+        return str(self.tier_data.get("name", f"Tier {self.tier}"))
+
+    def _derived_stat(self, stat: str) -> int:
+        class_data = self.class_data
+        if not class_data:
+            return int(self._fallback_stats.get(stat, 0))
+        base = int(class_data.get("base_stats", {}).get(stat, self._fallback_stats.get(stat, 0)))
+        growth = int(class_data.get("growth", {}).get(stat, 0))
+        multiplier = float(self.tier_data.get("growth_multiplier", 1.0))
+        bonus = int(self.tier_data.get("stat_bonus", {}).get(stat, 0))
+        return int(round(base + growth * (self.level - 1) * multiplier + bonus))
+
+    @property
+    def attack(self) -> int:
+        return self._derived_stat("attack")
+
+    @attack.setter
+    def attack(self, value: int) -> None:
+        if not hasattr(self, "_fallback_stats"):
+            self._fallback_stats = {}
+        self._fallback_stats["attack"] = int(value)
+
+    @property
+    def defense(self) -> int:
+        return self._derived_stat("defense")
+
+    @defense.setter
+    def defense(self, value: int) -> None:
+        if not hasattr(self, "_fallback_stats"):
+            self._fallback_stats = {}
+        self._fallback_stats["defense"] = int(value)
+
+    @property
+    def speed(self) -> int:
+        return self._derived_stat("speed")
+
+    @speed.setter
+    def speed(self, value: int) -> None:
+        if not hasattr(self, "_fallback_stats"):
+            self._fallback_stats = {}
+        self._fallback_stats["speed"] = int(value)
 
     # ---- Équipement ------------------------------------------------
     def equip_weapon(self, weapon: Any) -> None:
@@ -108,19 +176,41 @@ class Ally(Combatant):
 
     @property
     def max_hp(self) -> int:
-        return self._base_max_hp + self.class_stat_bonus("health")
+        equipment_health = sum(
+            _item_value(getattr(self, slot, None), ("health", "max_health"))
+            for slot in ("helmet", "chest", "legs", "boots", "arms")
+        )
+        return self._derived_stat("max_hp") + equipment_health
 
     @max_hp.setter
     def max_hp(self, value: int) -> None:
         self._base_max_hp = int(value)
+        if hasattr(self, "_fallback_stats"):
+            self._fallback_stats["max_hp"] = int(value)
 
     def bind_classes(self, class_catalog: dict[str, dict[str, Any]], progression: dict[str, Any]) -> None:
         self.class_catalog = class_catalog
         self.class_progression = progression
 
+    def refresh_stats(self, preserve_hp_ratio: bool = True) -> None:
+        saved_ratio = getattr(self, "_saved_hp_ratio", None)
+        previous_max_hp = max(1, int(getattr(self, "_last_max_hp", self.max_hp)))
+        ratio = saved_ratio if saved_ratio is not None else max(0.0, min(1.0, self.hp / previous_max_hp))
+        self._last_max_hp = self.max_hp
+        if saved_ratio is not None:
+            del self._saved_hp_ratio
+        self.hp = int(round(self.max_hp * ratio)) if preserve_hp_ratio else self.max_hp
+
+    def set_class(self, class_id: str, tier: int = 1, preserve_hp_ratio: bool = True) -> None:
+        previous_max_hp = max(1, self.max_hp)
+        ratio = max(0.0, min(1.0, self.hp / previous_max_hp))
+        self.class_id = class_id
+        self.tier = max(1, int(tier))
+        self.hp = int(round(self.max_hp * ratio)) if preserve_hp_ratio else self.max_hp
+
     @property
     def base_max_hp(self) -> int:
-        return self._base_max_hp
+        return self._derived_stat("max_hp")
 
     def _active_class_data(self) -> tuple[dict[str, Any], dict[str, Any]] | None:
         class_id = getattr(self, "class_progression", {}).get("active_class")

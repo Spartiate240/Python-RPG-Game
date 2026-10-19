@@ -9,6 +9,7 @@ import pygame
 from entities.combatant import Combatant
 from entities.enemy import Enemy
 from entities.player import Player
+from entities.shadow import Shadow
 from ui.theme import ACCENT, DANGER, MUTED, PANEL, PANEL_2, SUCCESS, TEXT
 from ui.widgets import Button
 
@@ -59,6 +60,9 @@ class BattleScreen:
         hero_sprite = pygame.transform.smoothscale(app._main_hero_sprite(), (80, 80))
         for index, member in enumerate(allies):
             self.draw_actor_card(app, member, pygame.Rect(90 + index * 180, 275, 160, 160), hero_sprite, (230, 245, 255), sprite_center_y=360)
+        for index, shadow in enumerate(app.battle.summoned_shadows):
+            shadow_sprite = app.renderer.shadow_sprite(shadow, (64, 64))
+            self.draw_actor_card(app, shadow, pygame.Rect(90 + index * 150, 215, 130, 130), shadow_sprite, (75, 45, 120), sprite_center_y=275)
         enemy_sprite = app._load_sprite(app._enemy_sprite_path(), (80, 80), "Ennemi")
         for enemy, rect in self.enemy_rects(app):
             self.draw_actor_card(app, enemy, rect, enemy_sprite, (255, 220, 220), sprite_center_y=rect.y + 75)
@@ -75,6 +79,9 @@ class BattleScreen:
             )
         ]
         if app.battle is not None and isinstance(app.battle.current_actor, Player):
+            if app.battle.current_actor.class_id == "necromancer":
+                for index, shadow in enumerate(app.battle.available_shadows()):
+                    buttons.append(Button(f"Invoquer {shadow.name}", pygame.Rect(700, 420 + index * 38, 220, 32), "invoke_shadow", payload={"shadow": shadow}))
             for index, item in enumerate(app.catalogs.items.values()):
                 quantity = int(app.inventory.get("items", {}).get(item["id"], 0))
                 if quantity <= 0 or item.get("effect") != "heal":

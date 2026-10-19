@@ -27,7 +27,16 @@
             "attack": 4,
             "defense": 2,
             "speed": 2,
-            "role": "attacker"
+            "role": "attacker",
+            "class_id": "warrior",
+            "tier": 1
         }
+    },
+    {
+        "id": "silver_badge",
+        "name": "Promesse d'argent",
+        "description": "Vous avez atteint le rang Argent.",
+        "conditions": [{"type": "min_rank", "rank": "silver"}],
+        "effect": "Titre honorifique"
     }
 ]

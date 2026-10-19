@@ -14,7 +14,7 @@
     "skills": [],
     "effects": [
       {
-        "requires": { "line": "archer", "min_tier": 1 },
+        "requires": { "line": "ranger", "min_tier": 1 },
         "passive": { "trigger": "on_hit_taken", "effect": "dodge", "chance": 0.1 }
       }
     ]
@@ -49,17 +49,19 @@
     "defense": 8,
     "health": 2,
     "speed": 0,
+    "allowed_classes": ["warrior"],
+    "min_tier": 2,
     "rarity": "uncommon",
     "value": 50,
     "sprite": "assets/sprites/armor/plate_armor.png",
     "skills": [],
     "effects": [
       {
-        "requires": { "line": "knight", "min_tier": 1 },
+        "requires": { "line": "warrior", "min_tier": 2 },
         "passive": { "trigger": "on_status_applied", "effect": "resist_stun", "chance": 0.3 }
       },
       {
-        "requires": { "line": "knight", "min_tier": 2 },
+        "requires": { "line": "warrior", "min_tier": 2 },
         "skill": "shield_bash"
       }
     ]

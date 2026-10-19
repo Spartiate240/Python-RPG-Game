@@ -11,7 +11,7 @@ XP_TABLE_PATH = Path(__file__).resolve().parent / "xp_table.json"
 
 
 class LevelManager:
-    """Applique l'XP, les paliers et les bonus de niveau aux allies."""
+    """Applique l'XP et les paliers aux allies."""
 
     def __init__(self, xp_table_path: Path = XP_TABLE_PATH) -> None:
         data = json.loads(xp_table_path.read_text(encoding="utf-8"))
@@ -46,10 +46,7 @@ class LevelManager:
     @staticmethod
     def _level_up(ally: Any) -> None:
         ally.level += 1
-        if hasattr(ally, "_base_max_hp"):
-            ally._base_max_hp += 2
+        if hasattr(ally, "refresh_stats"):
+            ally.refresh_stats(preserve_hp_ratio=False)
         else:
-            ally.max_hp += 2
-        ally.hp = ally.max_hp
-        ally.attack += 1
-        ally.defense += 1
+            ally.hp = ally.max_hp

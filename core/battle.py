@@ -15,6 +15,7 @@ from typing import Any
 from entities.combatant import Combatant
 from entities.enemy import Enemy
 from entities.player import Player
+from entities.shadow import Shadow
 from party.party import Party
 
 
@@ -41,11 +42,12 @@ class Battle:
         self.total_xp = 0
         self.total_gold = 0
         self.loot_collected = False
+        self.summoned_shadows: list[Shadow] = []
         self._rebuild_turn_order()
         self._auto_play_until_player()
 
     def _rebuild_turn_order(self) -> None:
-        combatants = [*self.party.active_members(), *self.enemies]
+        combatants = [*self.party.active_members(), *self.summoned_shadows, *self.enemies]
         self.turn_order = sorted(combatants, key=lambda combatant: getattr(combatant, "total_speed", combatant.speed), reverse=True)
         self.turn_index = 0
 
@@ -89,6 +91,13 @@ class Battle:
     def _check_outcome(self) -> None:
         if self.result is not None:
             return
+        dispersed = [shadow for shadow in self.summoned_shadows if not shadow.is_alive()]
+        for shadow in dispersed:
+            shadow._dispersed = True
+            self._log(f"{shadow.name} se disperse en fumée.")
+        if dispersed:
+            self.summoned_shadows = [shadow for shadow in self.summoned_shadows if shadow.is_alive()]
+            self._rebuild_turn_order()
         if not any(member.is_alive() for member in self.party.active_members()):
             self.result = "defeat"
             self._log("Le groupe a été vaincu.")
@@ -105,6 +114,9 @@ class Battle:
             if self.party.leader is not None:
                 self.party.leader.gold += total_gold
             self.loot = [item_id for enemy in self.enemies for item_id in enemy.roll_loot()]
+            for shadow in self.summoned_shadows:
+                shadow.restore_after_battle()
+            self.summoned_shadows.clear()
             self._log(f"Victoire. +{total_xp} XP, +{total_gold} or.")
 
     def _apply_turn_start(self, actor: Combatant) -> None:
@@ -116,8 +128,8 @@ class Battle:
 
     def _sides_for(self, combatant: Combatant) -> tuple[list[Combatant], list[Combatant]]:
         if combatant in self.enemies:
-            return self.enemies, list(self.party.active_members())
-        return list(self.party.active_members()), self.enemies
+            return self.enemies, [*self.party.active_members(), *self.summoned_shadows]
+        return [*self.party.active_members(), *self.summoned_shadows], self.enemies
 
     def _resolve_attack(self, actor: Combatant, target: Combatant, trigger_passive: bool = True) -> None:
         damage = max(1, self._attack_value(actor) - self._defense_value(target))
@@ -214,6 +226,22 @@ class Battle:
         else:
             self._resolve_skill(leader, target, skill)
         self._finish_player_action()
+
+    def available_shadows(self) -> list[Shadow]:
+        summoned_ids = {shadow.enemy_id for shadow in self.summoned_shadows}
+        return [shadow for shadow in self.party.assigned_shadows if shadow.enemy_id not in summoned_ids]
+
+    def invoke_shadow(self, shadow: Shadow) -> bool:
+        leader = self.party.leader
+        if leader is None or leader.class_id != "necromancer" or self.result is not None:
+            return False
+        if self.current_actor is not leader or shadow not in self.available_shadows():
+            return False
+        self.summoned_shadows.append(shadow)
+        self._rebuild_turn_order()
+        self._log(f"{leader.name} invoque {shadow.name}.")
+        self._finish_player_action()
+        return True
 
     def finish_player_action(self) -> None:
         """Avance le tour après une action validée par un service externe."""

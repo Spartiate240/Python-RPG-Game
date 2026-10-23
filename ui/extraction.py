@@ -28,18 +28,19 @@ class ExtractionScreen:
         app._draw_panel(pygame.Rect(250, 50, 780, 610), PANEL)
         app._draw_text("Extraction d'ombre", (310, 90), app.font_big, ACCENT)
         app._draw_centered_text(str(meta.get("name", current["id"])), (640, 155), app.font, TEXT)
-        sprite = app._load_sprite(meta.get("sprite"), (180, 180), "Ennemi")
+        sprite = app._load_sprite(meta.get("sprite"), (180, 180), "Ennemi").copy()
         gray = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
         gray.fill((105, 105, 105, 165))
         sprite.blit(gray, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         app.screen.blit(sprite, sprite.get_rect(center=(640, 300)))
         chance = app._extraction_chance_for_current()
-        app._draw_centered_text(f"Chance de réussite : {chance}%", (640, 440), app.font, ACCENT)
+        chance_color = SUCCESS if chance >= 60 else ACCENT if chance >= 30 else DANGER
+        app._draw_centered_text(f"Chance de réussite : {chance}%", (640, 440), app.font, chance_color)
         for index in range(3):
             color = ACCENT if index < app.extraction_attempts else MUTED
             pygame.draw.circle(app.screen, color, (570 + index * 70, 500), 18)
             pygame.draw.circle(app.screen, (93, 54, 34), (570 + index * 70, 500), 18, 2)
-        app._draw_centered_text(f"Tentatives restantes : {app.extraction_attempts}", (640, 540), app.font_small, MUTED)
+        app._draw_centered_text(f"Tentatives restantes : {app.extraction_attempts} / 3", (640, 540), app.font_small, MUTED)
         app._draw_buttons(self.buttons(app))
 
     def handle_click(self, app: Any, position: tuple[int, int]) -> None:

@@ -21,16 +21,17 @@ class MainMenuScreen:
     @staticmethod
     def buttons() -> list[Button]:
         return [
-            Button("Nouvelle partie", pygame.Rect(180, 400, 280, 60), "new_game", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Charger", pygame.Rect(180, 475, 280, 60), "load_game", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Quitter", pygame.Rect(180, 550, 280, 60), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Nouvelle partie", pygame.Rect(180, 400, 280, 60), "new_game", payload={"ui_icon": 16}),
+            Button("Charger une partie", pygame.Rect(180, 475, 280, 60), "load_game", payload={"ui_icon": 18}),
+            Button("Quitter", pygame.Rect(180, 550, 280, 60), "quit", payload={"ui_icon": 20}),
         ]
 
     def render(self, app: Any) -> None:
         app._draw_panel(pygame.Rect(60, 70, 520, 590), PANEL)
         app._draw_text("Python RPG", (130, 225), app.font_huge, ACCENT)
-        app._draw_text("<PLACE HOLDER>", (130, 300), app.font, TEXT)
-        app._draw_text("Interface pygame medievale", (130, 335), app.font_small, MUTED)
+        app._draw_text("Chroniques d'une terre oubliée", (130, 300), app.font, TEXT)
+        app._draw_text("Choisis une partie ou commence une nouvelle histoire.", (130, 335), app.font_small, MUTED)
+        app._draw_text("Les décisions prises en jeu sont conservées dans ta sauvegarde.", (130, 360), app.font_small, MUTED)
         app._draw_buttons(self.buttons())
 
         hero_panel = app.renderer.panel_surface(

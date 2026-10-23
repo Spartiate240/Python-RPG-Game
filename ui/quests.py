@@ -103,6 +103,20 @@ class QuestsScreen:
         status = app.progression_manager.quest_status(quest_id)
         if status == "hidden":
             return
+        status_labels = {
+            "available": "DISPONIBLE",
+            "active": "EN COURS",
+            "claimable": "A RECLAMER",
+            "claimed": "TERMINE",
+        }
+        status_colors = {
+            "available": ACCENT_2,
+            "active": ACCENT,
+            "claimable": SUCCESS,
+            "claimed": MUTED,
+        }
+        status_surface = app.font_small.render(status_labels.get(status, status.upper()), True, status_colors.get(status, MUTED))
+        app.screen.blit(status_surface, status_surface.get_rect(topright=(rect.right - 205, rect.y + 14)))
         self._draw_type_icon(app, (rect.x + 52, rect.y + 34), quest_type)
         app._draw_text(str(quest.get("name", quest_id)), (rect.x + 82, rect.y + 14), app.font, (58, 37, 20))
         app._draw_text(str(quest.get("description", "")), (rect.x + 82, rect.y + 47), app.font_small, (72, 47, 26))

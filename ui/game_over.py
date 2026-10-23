@@ -22,6 +22,7 @@ class GameOverScreen:
         xp_lost = int(summary.get("xp_lost", 0))
         loss_percent = int(summary.get("xp_loss_percent", 10))
         app._draw_panel(pygame.Rect(250, 135, 780, 410), (31, 24, 35))
+        app._draw_text("La défaite ne termine pas la partie.", (430, 175), app.font_small, MUTED)
         app._draw_centered_text("Défaite", (640, 220), app.font_huge, DANGER)
         app._draw_centered_text(
             f"Tu perds {loss_percent} % de ta progression XP du niveau.",

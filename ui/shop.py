@@ -89,6 +89,8 @@ class ShopScreen:
             app._draw_text(str(merchant.get("name", "Marchand")), (100, 165), app.font, ACCENT_2)
             app._draw_text(str(merchant.get("description", "")), (100, 200), app.font_small, MUTED)
             app._draw_text(f"Or: {gold}", (900, 115), app.font, SUCCESS)
+            app._draw_panel(pygame.Rect(880, 98, 190, 44), (44, 29, 18))
+            app._draw_text(f"Or disponible : {gold}", (895, 110), app.font_small, SUCCESS)
             app._draw_text("Stock", (100, 150), app.font, ACCENT)
             app._draw_text(
                 "Les références absentes des catalogues sont indisponibles.",

@@ -14,6 +14,7 @@ from ui.widgets import Button
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT_DIR / "UI_ignore"
+ASSET_UI_DIR = ROOT_DIR / "data" / "assets" / "UI"
 SCREEN_SIZE = (1280, 720)
 
 
@@ -26,9 +27,15 @@ class UIRenderer:
 
     def draw_background(self) -> None:
         self.app.screen.fill(BG)
+        texture = self.load_ui_sprite("freefantasy", "ff_001")
+        texture = texture.copy()
+        texture.set_alpha(52)
+        for y in range(0, SCREEN_SIZE[1], texture.get_height()):
+            for x in range(0, SCREEN_SIZE[0], texture.get_width()):
+                self.app.screen.blit(texture, (x, y))
         pygame.draw.rect(
             self.app.screen,
-            BG_2,
+            (*BG_2, 70),
             pygame.Rect(0, SCREEN_SIZE[1] // 2, SCREEN_SIZE[0], SCREEN_SIZE[1] // 2),
         )
 
@@ -77,7 +84,7 @@ class UIRenderer:
                 path = ROOT_DIR / relative_path
             if path.exists():
                 image = pygame.image.load(str(path)).convert_alpha()
-                image = pygame.transform.smoothscale(image, size)
+                image = pygame.transform.scale(image, size)
                 pygame.draw.rect(image, ACCENT_2, image.get_rect(), width=2, border_radius=12)
                 self.app.sprite_cache[key] = image
                 return image
@@ -147,7 +154,7 @@ class UIRenderer:
             surface = pygame.Surface(size, pygame.SRCALPHA)
             pygame.draw.rect(surface, ACCENT_2, surface.get_rect(), width=2, border_radius=6)
             return surface
-        image = pygame.transform.smoothscale(pygame.image.load(path).convert_alpha(), size)
+        image = pygame.transform.scale(pygame.image.load(path).convert_alpha(), size)
         pygame.draw.rect(image, ACCENT_2, image.get_rect(), width=1, border_radius=6)
         return image
 
@@ -178,7 +185,21 @@ class UIRenderer:
             else self.crop_ui_sprite(theme, sprite_id)
         )
         if size is not None and sprite.get_size() != size:
-            sprite = pygame.transform.smoothscale(sprite, size)
+            sprite = pygame.transform.scale(sprite, size)
+        self.app.ui_sprite_cache[cache_key] = sprite
+        return sprite
+
+    def load_asset_sprite(self, category: str, asset_id: str, size: tuple[int, int] | None = None) -> pygame.Surface:
+        """Charge un sprite UI extrait dans les assets de production."""
+        path = ASSET_UI_DIR / category / f"{asset_id}.png"
+        cache_key = (f"asset:{category}", asset_id, size)
+        if cache_key in self.app.ui_sprite_cache:
+            return self.app.ui_sprite_cache[cache_key]
+        if not path.exists():
+            return pygame.Surface((1, 1), pygame.SRCALPHA)
+        sprite = pygame.image.load(str(path)).convert_alpha()
+        if size is not None and sprite.get_size() != size:
+            sprite = pygame.transform.scale(sprite, size)
         self.app.ui_sprite_cache[cache_key] = sprite
         return sprite
 
@@ -204,7 +225,8 @@ class UIRenderer:
         overlay_sprite_id: str | None = None,
     ) -> pygame.Surface:
         surface = pygame.Surface(size, pygame.SRCALPHA)
-        surface.blit(self.load_ui_sprite(theme, sprite_id, size), (0, 0))
+        source = self.load_ui_sprite(theme, sprite_id)
+        surface.blit(self.nine_slice(source, size, 12), (0, 0))
         overlay = pygame.Surface(size, pygame.SRCALPHA)
         overlay.fill((*tint, 115))
         surface.blit(overlay, (0, 0))
@@ -215,9 +237,46 @@ class UIRenderer:
             )
         return surface
 
+    @staticmethod
+    def nine_slice(source: pygame.Surface, size: tuple[int, int], margin: int) -> pygame.Surface:
+        """Redimensionne un cadre en preservant ses angles pixel-art."""
+        target = pygame.Surface(size, pygame.SRCALPHA)
+        source_width, source_height = source.get_size()
+        margin = min(margin, source_width // 2, source_height // 2, size[0] // 2, size[1] // 2)
+        source_rects = {
+            "top_left": pygame.Rect(0, 0, margin, margin),
+            "top": pygame.Rect(margin, 0, source_width - margin * 2, margin),
+            "top_right": pygame.Rect(source_width - margin, 0, margin, margin),
+            "left": pygame.Rect(0, margin, margin, source_height - margin * 2),
+            "center": pygame.Rect(margin, margin, source_width - margin * 2, source_height - margin * 2),
+            "right": pygame.Rect(source_width - margin, margin, margin, source_height - margin * 2),
+            "bottom_left": pygame.Rect(0, source_height - margin, margin, margin),
+            "bottom": pygame.Rect(margin, source_height - margin, source_width - margin * 2, margin),
+            "bottom_right": pygame.Rect(source_width - margin, source_height - margin, margin, margin),
+        }
+        target_rects = {
+            "top_left": pygame.Rect(0, 0, margin, margin),
+            "top": pygame.Rect(margin, 0, size[0] - margin * 2, margin),
+            "top_right": pygame.Rect(size[0] - margin, 0, margin, margin),
+            "left": pygame.Rect(0, margin, margin, size[1] - margin * 2),
+            "center": pygame.Rect(margin, margin, size[0] - margin * 2, size[1] - margin * 2),
+            "right": pygame.Rect(size[0] - margin, margin, margin, size[1] - margin * 2),
+            "bottom_left": pygame.Rect(0, size[1] - margin, margin, margin),
+            "bottom": pygame.Rect(margin, size[1] - margin, size[0] - margin * 2, margin),
+            "bottom_right": pygame.Rect(size[0] - margin, size[1] - margin, margin, margin),
+        }
+        for name, source_rect in source_rects.items():
+            target_rect = target_rects[name]
+            if target_rect.width > 0 and target_rect.height > 0:
+                piece = source.subsurface(source_rect)
+                if piece.get_size() != target_rect.size:
+                    piece = pygame.transform.scale(piece, target_rect.size)
+                target.blit(piece, target_rect)
+        return target
+
     def button_surface(self, button: Button) -> pygame.Surface:
-        theme = button.sprite_theme or "MediavelFree"
-        sprite_id = button.sprite_id or ("mf_000" if button.enabled else "ff_006")
+        theme = button.sprite_theme or "freefantasy"
+        sprite_id = button.sprite_id or ("ff_002" if button.enabled else "ff_003")
         surface = self.panel_surface((button.rect.width, button.rect.height), theme, sprite_id, (54, 35, 20))
         outline_color = ACCENT if button.enabled else MUTED
         pygame.draw.rect(surface, outline_color, surface.get_rect(), width=2, border_radius=14)
@@ -228,18 +287,28 @@ class UIRenderer:
                 icon = self.load_item_sprite(item, (button.rect.width - 12, button.rect.height - 12))
                 surface.blit(icon, icon.get_rect(center=surface.get_rect().center))
             else:
+                equipment_id = button.payload.get("equipment_id")
+                if equipment_id is not None:
+                    icon = self.load_asset_sprite("equipment", str(equipment_id), (24, 24))
+                    surface.blit(icon, icon.get_rect(center=surface.get_rect().center))
                 label = self.app.font_small.render(button.payload.get("slot_label", ""), True, MUTED)
                 surface.blit(label, label.get_rect(center=surface.get_rect().center))
             return surface
 
         item = button.payload.get("item")
-        if item is not None and button.action.startswith(("equip", "unequip", "use_item")):
+        if item is not None and button.action.startswith(("buy:", "equip", "unequip", "use_item")):
             icon = self.load_item_sprite(item, (24, 24))
             surface.blit(icon, (12, (surface.get_height() - 24) // 2))
             label = self.app.font_small.render(button.label, True, TEXT if button.enabled else MUTED)
             surface.blit(label, label.get_rect(midleft=(44, surface.get_height() // 2)))
             return surface
-
+        ui_icon = button.payload.get("ui_icon")
+        if ui_icon is not None:
+            icon = self.load_asset_sprite("icons", str(ui_icon), (24, 24))
+            surface.blit(icon, (12, (surface.get_height() - 24) // 2))
+            label = self.app.font_small.render(button.label, True, TEXT if button.enabled else MUTED)
+            surface.blit(label, label.get_rect(midleft=(46, surface.get_height() // 2)))
+            return surface
         label = self.app.font.render(button.label, True, TEXT if button.enabled else MUTED)
         surface.blit(label, label.get_rect(center=surface.get_rect().center))
         return surface

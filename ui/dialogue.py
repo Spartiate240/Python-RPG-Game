@@ -23,7 +23,7 @@ class DialogueScreen:
                     str(choice.get("label", "Continuer")),
                     pygame.Rect(145, 455 + index * 62, 990, 48),
                     "dialogue_choice",
-                    payload={"choice": choice},
+                    payload={"choice": choice, "ui_icon": 21 + index},
                 )
             )
         return buttons
@@ -46,9 +46,14 @@ class DialogueScreen:
     def render(self, app: Any) -> None:
         dialogue = app.current_dialogue or {}
         app._draw_panel(pygame.Rect(90, 70, 1100, 590), PANEL)
-        app._draw_text(str(dialogue.get("speaker", "")), (140, 115), app.font_big, ACCENT)
-        app._draw_panel(pygame.Rect(140, 195, 1000, 220), PANEL_2)
-        for index, line in enumerate(self._lines(app, str(dialogue.get("text", "")), 940)):
-            app._draw_text(line, (175, 230 + index * 34), app.font, TEXT)
+        portrait = app.renderer.load_asset_sprite("holders", "2", (128, 128))
+        app.screen.blit(portrait, portrait.get_rect(topleft=(140, 105)))
+        icon = app.renderer.load_asset_sprite("icons", "16", (88, 88))
+        app.screen.blit(icon, icon.get_rect(center=(204, 169)))
+        app._draw_text(str(dialogue.get("speaker", "")), (300, 125), app.font_big, ACCENT)
+        app._draw_text("Dialogue", (302, 175), app.font_small, MUTED)
+        app._draw_panel(pygame.Rect(300, 205, 840, 190), PANEL_2)
+        for index, line in enumerate(self._lines(app, str(dialogue.get("text", "")), 780)):
+            app._draw_text(line, (335, 240 + index * 34), app.font, TEXT)
         app._draw_text("Choisis une réponse", (145, 430), app.font_small, MUTED)
         app._draw_buttons(self.buttons(app))

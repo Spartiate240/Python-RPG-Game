@@ -106,7 +106,13 @@ class StatusScreen:
                     STATUS_EQUIPPED_BOX_SIZE,
                 ),
                 f"unequip:{slot}",
-                payload={"slot": slot, "item": item, "kind": "equipped", "slot_label": label},
+                payload={
+                    "slot": slot,
+                    "item": item,
+                    "kind": "equipped",
+                    "slot_label": label,
+                    "equipment_id": index + 1,
+                },
                 enabled=item is not None,
             )
             for index, (slot, label, item) in enumerate(slots)
@@ -148,6 +154,8 @@ class StatusScreen:
             rect = pygame.Rect(x, y + index * 96, STATUS_COLUMN_W, 84)
             selected = index == app.selected_member_index
             app._draw_panel(rect, PANEL_2 if selected else (22, 30, 48))
+            holder = app.renderer.load_asset_sprite("holders", "2", (64, 64))
+            app.screen.blit(holder, holder.get_rect(center=(rect.x + 41, rect.y + 42)))
             sprite = app._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
             app.screen.blit(sprite, (rect.x + 14, rect.y + 15))
             app._draw_text(member.name, (rect.x + 82, rect.y + 10), app.font, ACCENT if selected else TEXT)

@@ -21,13 +21,13 @@ class ExplorationScreen:
     @staticmethod
     def buttons() -> list[Button]:
         return [
-            Button("Régions", pygame.Rect(800, 225, 320, 48), "regions", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Rencontre", pygame.Rect(800, 275, 320, 48), "encounter", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Boutique", pygame.Rect(800, 325, 320, 48), "shop", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Tableau des quêtes", pygame.Rect(800, 375, 320, 48), "quests", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Titres", pygame.Rect(800, 425, 320, 48), "titles", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Inventaire", pygame.Rect(800, 475, 320, 48), "status", sprite_theme="freefantasy", sprite_id="ff_002"),
-            Button("Changer de classe", pygame.Rect(800, 525, 320, 48), "classes", sprite_theme="freefantasy", sprite_id="ff_002"),
+            Button("Régions", pygame.Rect(800, 225, 320, 48), "regions", payload={"ui_icon": 16}),
+            Button("Rencontre", pygame.Rect(800, 275, 320, 48), "encounter", payload={"ui_icon": 17}),
+            Button("Boutique", pygame.Rect(800, 325, 320, 48), "shop", payload={"ui_icon": 18}),
+            Button("Tableau des quêtes", pygame.Rect(800, 375, 320, 48), "quests", payload={"ui_icon": 19}),
+            Button("Titres", pygame.Rect(800, 425, 320, 48), "titles", payload={"ui_icon": 20}),
+            Button("Inventaire", pygame.Rect(800, 475, 320, 48), "status", payload={"ui_icon": 21}),
+            Button("Changer de classe", pygame.Rect(800, 525, 320, 48), "classes", payload={"ui_icon": 22}),
             Button("Sauvegarder", pygame.Rect(800, 575, 155, 48), "save", sprite_theme="freefantasy", sprite_id="ff_002"),
             Button("Quitter", pygame.Rect(965, 575, 155, 48), "quit", sprite_theme="freefantasy", sprite_id="ff_002"),
         ]
@@ -41,6 +41,8 @@ class ExplorationScreen:
         for index, member in enumerate(app.party.members):
             rect = pygame.Rect(x, y + index * 96, 430, 84)
             app._draw_panel(rect, (22, 30, 48))
+            holder = app.renderer.load_asset_sprite("holders", "2", (64, 64))
+            app.screen.blit(holder, holder.get_rect(center=(rect.x + 41, rect.y + 42)))
             sprite = app._load_sprite("data/assets/sprites/player/ff_000.png", (54, 54), "Joueur")
             app.screen.blit(sprite, (rect.x + 14, rect.y + 15))
             app._draw_text(member.name, (rect.x + 82, rect.y + 10), app.font, TEXT)

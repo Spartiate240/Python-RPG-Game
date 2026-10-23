@@ -42,17 +42,37 @@ class ClassesScreen:
         for index, class_id in enumerate(app.catalogs.classes):
             class_data = app.catalogs.classes[class_id]
             rect = pygame.Rect(65 + index * 285, 175, 270, 350)
-            app._draw_panel(rect, (74, 49, 29))
-            self.draw_emblem(app, class_data.get("emblem", "sword"), rect.centerx, rect.y + 72)
-            app._draw_centered_text(str(class_data.get("name", class_id)), (rect.centerx, rect.y + 145), app.font, ACCENT_2)
+            is_necromancer = class_id == "necromancer"
+            card_color = (35, 27, 38) if is_necromancer else (74, 49, 29)
+            app._draw_panel(rect, card_color)
+            icon_id = {"sword": 23, "staff": 24, "bow": 25, "skull": 26}.get(class_data.get("emblem"), 23)
+            icon = app.renderer.load_asset_sprite("icons", str(icon_id), (64, 64))
+            if is_necromancer:
+                icon = icon.copy()
+                icon.fill((82, 70, 105, 190), special_flags=pygame.BLEND_RGBA_MULT)
+            app.screen.blit(icon, icon.get_rect(center=(rect.centerx, rect.y + 72)))
+            app._draw_centered_text(str(class_data.get("name", class_id)), (rect.centerx, rect.y + 145), app.font, (151, 126, 181) if is_necromancer else ACCENT_2)
             description = str(class_data.get("description", ""))
-            app._draw_centered_text(description, (rect.centerx, rect.y + 185), app.font_small, TEXT)
+            words, line = description.split(), ""
+            lines: list[str] = []
+            for word in words:
+                candidate = f"{line} {word}".strip()
+                if line and app.font_small.size(candidate)[0] > rect.width - 28:
+                    lines.append(line)
+                    line = word
+                else:
+                    line = candidate
+            if line:
+                lines.append(line)
+            for line_index, text in enumerate(lines[:3]):
+                app._draw_centered_text(text, (rect.centerx, rect.y + 180 + line_index * 20), app.font_small, TEXT)
             stats = class_data.get("base_stats", {})
-            app._draw_centered_text(
-                f"PV {stats.get('max_hp', 0)}  ATQ {stats.get('attack', 0)}  DEF {stats.get('defense', 0)}  VIT {stats.get('speed', 0)}",
-                (rect.centerx, rect.y + 245), app.font_small, MUTED,
-            )
-            app._draw_centered_text("Tier 1", (rect.centerx, rect.y + 285), app.font_small, TEXT)
+            stat_labels = (("PV", "max_hp"), ("ATQ", "attack"), ("DEF", "defense"), ("VIT", "speed"))
+            for stat_index, (label, key) in enumerate(stat_labels):
+                x = rect.x + 24 + (stat_index % 2) * 118
+                y = rect.y + 250 + (stat_index // 2) * 30
+                app._draw_text(f"{label} {stats.get(key, 0)}", (x, y), app.font_small, MUTED)
+            app._draw_centered_text("Tier 1", (rect.centerx, rect.y + 315), app.font_small, TEXT)
         if app.status_feedback:
             app._draw_text(app.status_feedback, (220, 570), app.font_small, TEXT)
         app._draw_buttons(self.buttons(app))

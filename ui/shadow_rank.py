@@ -48,7 +48,7 @@ class ShadowRankScreen:
             (640, 325), app.font, tuple(next_data.get("color", ACCENT)),
         )
         cost = shadow_rank_cost(shadow, app.catalogs.shadow_ranks) or {}
-        app._draw_text(f"Niveau de l'ombre : {shadow.level}  (minimum : {cost.get('min_level', '-')})", (330, 380), app.font_small, TEXT)
+        app._draw_text(f"Niveau : {shadow.level} / minimum {cost.get('min_level', '-')}", (330, 380), app.font_small, TEXT)
         app._draw_text("Coûts", (330, 425), app.font, ACCENT)
         rows = [(item_id, int(required)) for item_id, required in cost.get("materials", {}).items()]
         rows.append(("shadow_essence", int(cost.get("shadow_essence", 0))))
@@ -58,4 +58,5 @@ class ShadowRankScreen:
             color = SUCCESS if owned >= required else DANGER
             app._draw_text(str(item.get("name", item_id)), (360, 465 + index * 30), app.font_small, TEXT)
             app._draw_text(f"{owned} / {required}", (760, 465 + index * 30), app.font_small, color)
+        app._draw_text("Chaque ressource doit atteindre la valeur demandée.", (330, 545), app.font_small, MUTED)
         app._draw_buttons(self.buttons(app))

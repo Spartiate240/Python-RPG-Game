@@ -6,7 +6,7 @@ from typing import Any
 
 import pygame
 
-from ui.theme import ACCENT, MUTED, PANEL, TEXT
+from ui.theme import ACCENT, MUTED, PANEL, SUCCESS, TEXT
 from ui.widgets import Button
 
 
@@ -39,8 +39,21 @@ class CeremonyScreen:
             app._draw_centered_text(str(app.catalogs.shadow_ranks["ranks"].get(shadow.rank_id, {}).get("name", shadow.rank_id)), (640, 390), app.font, ACCENT)
         else:
             draw_rank_badge(app, (640, 315), str(ceremony.get("icon_rank", "iron")), 92)
-        app._draw_centered_text(str(ceremony.get("message", "Votre progression est reconnue.")), (640, 455), app.font, TEXT)
+        message = str(ceremony.get("message", "Votre progression est reconnue."))
+        words, line = message.split(), ""
+        lines: list[str] = []
+        for word in words:
+            candidate = f"{line} {word}".strip()
+            if line and app.font.size(candidate)[0] > 620:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        if line:
+            lines.append(line)
+        for index, text in enumerate(lines[:3]):
+            app._draw_centered_text(text, (640, 445 + index * 28), app.font, TEXT)
         if ceremony.get("stat_gain"):
-            app._draw_centered_text(str(ceremony["stat_gain"]), (640, 490), app.font_small, TEXT)
-        app._draw_centered_text("Le chemin continue.", (640, 525), app.font_small, MUTED)
+            app._draw_centered_text(str(ceremony["stat_gain"]), (640, 520), app.font_small, SUCCESS)
+        app._draw_centered_text("Le chemin continue.", (640, 545), app.font_small, MUTED)
         app._draw_buttons(self.buttons())

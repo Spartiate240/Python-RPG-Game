@@ -2,7 +2,7 @@
   {
     "id": "necromancer",
     "name": "Nécromancien",
-    "emblem": "skull",
+    "emblem": "sword",
     "description": "Un maître des arts funestes qui arrache des ombres aux ennemis vaincus.",
     "base_stats": {"max_hp": 24, "attack": 7, "defense": 3, "speed": 4},
     "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 1},
@@ -15,7 +15,7 @@
   {
     "id": "warrior",
     "name": "Guerrier",
-    "emblem": "sword",
+    "emblem": "skull",
     "description": "Un combattant robuste, maître des armes et des armures lourdes.",
     "base_stats": {"max_hp": 30, "attack": 8, "defense": 6, "speed": 4},
     "growth": {"max_hp": 6, "attack": 2, "defense": 2, "speed": 1},

@@ -52,6 +52,10 @@ class BattleScreen:
             app.font_small,
             SUCCESS if combatant.is_alive() else DANGER,
         )
+        bar = pygame.Rect(rect.x + 18, rect.bottom - 8, rect.width - 36, 5)
+        pygame.draw.rect(app.screen, (35, 25, 20), bar)
+        ratio = max(0.0, min(1.0, combatant.hp / max(1, combatant.max_hp)))
+        pygame.draw.rect(app.screen, SUCCESS if combatant.is_alive() else DANGER, pygame.Rect(bar.x, bar.y, int(bar.width * ratio), bar.height))
 
     def draw_cards(self, app: Any) -> None:
         if app.party is None or app.battle is None:
@@ -75,6 +79,7 @@ class BattleScreen:
                 "Attaque normale",
                 pygame.Rect(700, 510, 220, 48),
                 "select_attack",
+                payload={"ui_icon": 23},
                 enabled=app.selected_battle_action != "attack",
             )
         ]
@@ -91,7 +96,7 @@ class BattleScreen:
                         f"{item.get('name', item['id'])} x{quantity}",
                         pygame.Rect(950, 510 + index * 36, 220, 32),
                         "use_item",
-                        payload={"item_id": item["id"]},
+                        payload={"item_id": item["id"], "ui_icon": 24},
                     )
                 )
             for index, skill in enumerate(app.battle.available_skills(app.battle.current_actor)):
@@ -100,11 +105,11 @@ class BattleScreen:
                         skill.name,
                         pygame.Rect(700, 565 + index * 48, 220, 42),
                         "select_skill",
-                        payload={"skill_id": skill.id},
+                        payload={"skill_id": skill.id, "ui_icon": 25},
                         enabled=app.selected_battle_skill_id != skill.id,
                     )
                 )
-        buttons.append(Button("Fuir", pygame.Rect(950, 580, 190, 50), "flee", sprite_theme="freefantasy", sprite_id="ff_002"))
+        buttons.append(Button("Fuir", pygame.Rect(950, 580, 190, 50), "flee", payload={"ui_icon": 26}))
         return buttons
 
     def draw_log(self, app: Any) -> None:

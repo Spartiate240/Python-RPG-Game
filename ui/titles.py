@@ -34,23 +34,27 @@ class TitlesScreen:
             MUTED,
         )
         for index, title in enumerate(app.title_catalog.values()):
-            y = 230 + index * 72
+            y = 190 + index * 82
             state = app.progression["titles"].get(str(title["id"]), {})
             progress = " / ".join(
                 f"{item['current']}/{item['target']}"
                 for item in state.get("progress", [])
             )
             unlocked = "Débloqué" if state.get("unlocked") else progress
+            rect = pygame.Rect(150, y, 980, 68)
+            app._draw_panel(rect, (44, 29, 18) if state.get("unlocked") else (35, 25, 20))
+            pygame.draw.circle(app.screen, SUCCESS if state.get("unlocked") else ACCENT, (rect.x + 30, rect.centery), 9)
             app._draw_text(
                 str(title.get("name", title["id"])),
-                (220, y),
+                (rect.x + 58, y + 10),
                 app.font,
                 SUCCESS if state.get("unlocked") else ACCENT,
             )
             app._draw_text(
-                f"{title.get('description', '')} — {unlocked}",
-                (220, y + 30),
+                str(title.get("description", "")),
+                (rect.x + 58, y + 39),
                 app.font_small,
                 TEXT,
             )
+            app._draw_text(unlocked or "À progresser", (rect.right - 180, y + 24), app.font_small, SUCCESS if state.get("unlocked") else MUTED)
         app._draw_buttons(self.buttons())

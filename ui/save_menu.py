@@ -42,7 +42,7 @@ class SaveMenuScreen:
             ]
         buttons = []
         for index, slot in enumerate(app.save_manager.list_slots()):
-            buttons.append(Button(slot.label, pygame.Rect(160, 190 + index * 64, 760, 48), "load_slot", {"path": str(slot.path)}))
+            buttons.append(Button(slot.label, pygame.Rect(160, 190 + index * 72, 760, 56), "load_slot", payload={"path": str(slot.path), "ui_icon": 16}))
         buttons.append(Button("Nouvelle partie", pygame.Rect(160, 560, 300, 50), "new_named_game"))
         buttons.append(Button("Retour", pygame.Rect(980, 560, 170, 50), "save_back"))
         return buttons
@@ -69,6 +69,10 @@ class SaveMenuScreen:
                 app._draw_text("Aucune sauvegarde trouvee.", (160, 210), app.font, MUTED)
             else:
                 app._draw_text("Selectionne une partie a reprendre.", (160, 155), app.font_small, MUTED)
+                for index, slot in enumerate(slots):
+                    y = 190 + index * 72
+                    app._draw_text("Sauvegarde locale" if not slot.legacy else "Sauvegarde principale", (210, y + 31), app.font_small, MUTED)
+                    app._draw_text(slot.path.stem, (680, y + 31), app.font_small, ACCENT)
         app._draw_buttons(self.buttons(app))
 
     def click(self, app: Any, position: tuple[int, int]) -> None:

@@ -33,7 +33,12 @@ class CeremonyScreen:
         pygame.draw.rect(app.screen, ACCENT, rect, width=4, border_radius=6)
         ceremony = app.ceremony or {}
         app._draw_centered_text(str(ceremony.get("title", "Cérémonie")), (640, 160), app.font_big, ACCENT)
-        draw_rank_badge(app, (640, 315), str(ceremony.get("icon_rank", "iron")), 92)
+        shadow = ceremony.get("shadow")
+        if shadow is not None:
+            app.screen.blit(app.renderer.shadow_sprite(shadow, (150, 150)), (565, 220))
+            app._draw_centered_text(str(app.catalogs.shadow_ranks["ranks"].get(shadow.rank_id, {}).get("name", shadow.rank_id)), (640, 390), app.font, ACCENT)
+        else:
+            draw_rank_badge(app, (640, 315), str(ceremony.get("icon_rank", "iron")), 92)
         app._draw_centered_text(str(ceremony.get("message", "Votre progression est reconnue.")), (640, 455), app.font, TEXT)
         if ceremony.get("stat_gain"):
             app._draw_centered_text(str(ceremony["stat_gain"]), (640, 490), app.font_small, TEXT)

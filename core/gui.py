@@ -21,7 +21,7 @@ from core.inventory import InventoryManager
 from core.classes import ClassService
 from core.progression import ProgressionManager
 from core.shop import ShopService
-from core.shadows import can_extract, extraction_chance, attempt_extraction, EXTRACTION_ATTEMPTS
+from core.shadows import can_extract, extraction_chance, attempt_extraction, EXTRACTION_ATTEMPTS, promote_shadow
 from core.save_manager import SaveManager
 from entities.player import Player
 from party.party import Party
@@ -36,6 +36,7 @@ from ui.quests import QuestsScreen
 from ui.regions import RegionsScreen
 from ui.renderer import UIRenderer
 from ui.shop import ShopScreen
+from ui.shadow_rank import ShadowRankScreen
 from ui.classes import ClassesScreen
 from ui.ceremony import CeremonyScreen
 from ui.dialogue import DialogueScreen
@@ -111,6 +112,7 @@ class PygameApp:
         self.shop_screen = ShopScreen()
         self.classes_screen = ClassesScreen()
         self.status_screen = StatusScreen()
+        self.shadow_rank_screen = ShadowRankScreen()
         self.quests_screen = QuestsScreen()
         self.titles_screen = TitlesScreen()
         self.dialogue_screen = DialogueScreen()
@@ -133,6 +135,7 @@ class PygameApp:
         self.selected_battle_skill_id: str | None = None
         # Message court pour confirmer une action d'équipement ou de retrait.
         self.status_feedback = ""
+        self.selected_shadow: Any | None = None
         self.notification = NotificationToast()
         # Personnage actuellement sélectionné dans l'écran statut (index dans party.members).
         self.selected_member_index = 0
@@ -232,6 +235,8 @@ class PygameApp:
             self._handle_buttons(position, self.zones_screen.buttons(self))
         elif self.state == "status":
             self.status_screen.handle_click(self, position)
+        elif self.state == "shadow_rank":
+            self.shadow_rank_screen.handle_click(self, position)
         elif self.state == "extraction":
             self.extraction_screen.handle_click(self, position)
         elif self.state == "battle":
@@ -382,6 +387,29 @@ class PygameApp:
         elif action == "toggle_shadow":
             if self.party is not None:
                 self.party.toggle_shadow_assignment(payload.get("shadow"))
+        elif action == "open_shadow_rank":
+            self.selected_shadow = payload.get("shadow")
+            self.state = "shadow_rank"
+        elif action == "shadow_rank_back":
+            self.selected_shadow = None
+            self.state = "status"
+        elif action == "promote_selected_shadow":
+            shadow = self.selected_shadow
+            if self.party is not None and shadow is not None:
+                necromancer = next((member for member in self.party.members if member.class_id == "necromancer"), None)
+                if necromancer is not None:
+                    success, result = promote_shadow(shadow, necromancer, self.inventory, self.catalogs.shadow_ranks)
+                    if success:
+                        self.ceremony = {
+                            "title": "Ascension d'une ombre",
+                            "shadow": shadow,
+                            "icon_rank": result,
+                            "message": f"{shadow.name} atteint le rang {self.catalogs.shadow_ranks['ranks'][result]['name']}.",
+                            "stat_gain": "Ses statistiques sont recalculées avec sa nouvelle aura.",
+                        }
+                        self.state = "ceremony"
+                    else:
+                        self.status_feedback = result
         elif action == "invoke_shadow":
             if self.battle is not None:
                 self.battle.invoke_shadow(payload.get("shadow"))
@@ -644,7 +672,7 @@ class PygameApp:
         self.extraction_queue = [
             {"id": meta.get("id"), "meta": meta}
             for meta in self.battle.enemy_meta
-            if meta.get("extractable") and meta.get("id") not in owned
+            if meta.get("extractable")
         ] if self.battle is not None else []
         if not self.extraction_queue:
             return False
@@ -676,8 +704,16 @@ class PygameApp:
         self.extraction_attempts -= 1
         if attempt_extraction(necromancer, enemy, int(current["meta"].get("extraction_difficulty", 50))):
             from entities.shadow import Shadow
-            self.party.add_shadow(Shadow.from_enemy_data(current["id"], current["meta"], enemy.level, 0))
-            self.status_feedback = "L'ombre s'est levée."
+            existing_shadow = self.party.shadow_for_enemy(current["id"])
+            if existing_shadow is not None:
+                existing_shadow.gain_xp(max(1, int(enemy.xp_reward)))
+                essence = self.catalogs.resolve_item("shadow_essence")
+                self.inventory_manager.add_shared_item(essence)
+                self.status_feedback = "Doublon converti : +1 essence d'ombre et XP accordée."
+                self.notification.show("Extraction en doublon : +1 essence d'ombre")
+            else:
+                self.party.add_shadow(Shadow.from_enemy_data(current["id"], current["meta"], enemy.level, 0))
+                self.status_feedback = "L'ombre s'est levée."
             self._next_extraction()
         elif self.extraction_attempts <= 0:
             self.status_feedback = "L'extraction a échoué."
@@ -722,6 +758,8 @@ class PygameApp:
             self.game_over_screen.render(self)
         elif self.state == "ceremony":
             self.ceremony_screen.render(self)
+        elif self.state == "shadow_rank":
+            self.shadow_rank_screen.render(self)
         self.notification.draw(self)
 
     def _draw_background(self) -> None:

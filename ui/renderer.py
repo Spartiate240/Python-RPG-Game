@@ -22,7 +22,7 @@ class UIRenderer:
 
     def __init__(self, app: Any) -> None:
         self.app = app
-        self.shadow_sprite_cache: dict[tuple[str, tuple[int, int]], pygame.Surface] = {}
+        self.shadow_sprite_cache: dict[tuple[str, tuple[int, int], str], pygame.Surface] = {}
 
     def draw_background(self) -> None:
         self.app.screen.fill(BG)
@@ -90,17 +90,28 @@ class UIRenderer:
         return surface
 
     def shadow_sprite(self, shadow: Any, size: tuple[int, int]) -> pygame.Surface:
-        key = (str(getattr(shadow, "enemy_id", "shadow")), size)
+        rank_id = str(getattr(shadow, "rank_id", "soldier"))
+        key = (str(getattr(shadow, "enemy_id", "shadow")), size, rank_id)
         if key in self.shadow_sprite_cache:
-            return self.shadow_sprite_cache[key]
+            base = self.shadow_sprite_cache[key]
+            result = base.copy()
+            rank_data = self.app.catalogs.shadow_ranks.get("ranks", {}).get(rank_id, {})
+            if rank_id in {"commander", "marshal"}:
+                pulse = 0.75 + 0.25 * (1 + pygame.math.Vector2(1, 0).rotate(pygame.time.get_ticks() / 12).x)
+                result.set_alpha(max(150, min(255, int(180 + 60 * pulse))))
+            return result
         source = self.load_sprite(getattr(shadow, "sprite_path", None), size, "Ombre")
         tinted = source.copy()
         tinted.fill((70, 50, 130), special_flags=pygame.BLEND_RGB_MULT)
         mask = pygame.mask.from_surface(tinted)
         outline = mask.outline()
-        pygame.draw.lines(tinted, (160, 100, 230), True, outline, 3)
+        rank_data = self.app.catalogs.shadow_ranks.get("ranks", {}).get(rank_id, {})
+        color = tuple(rank_data.get("color", (160, 100, 230)))
+        width = int(rank_data.get("outline_width", 1))
+        if outline:
+            pygame.draw.lines(tinted, color, True, outline, width)
         self.shadow_sprite_cache[key] = tinted
-        return tinted
+        return tinted.copy()
 
     def item_sprite_path(self, item: object | None) -> str | None:
         if item is None:

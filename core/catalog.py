@@ -21,6 +21,7 @@ class Catalogs:
         self.armors = self.load("armor.json")
         self.pets = self.load("pets.json")
         self.ranks = self.load("adventurerer_rank.json")
+        self.shadow_ranks = self.load_shadow_ranks()
         self.classes = self.load_classes()
         self.quests = self.load("quests.json")
         self._add_rank_evaluation_quests()
@@ -94,6 +95,18 @@ class Catalogs:
             for entry in data
             if isinstance(entry, dict) and entry.get("id", entry.get("line_id"))
         }
+
+    def load_shadow_ranks(self) -> dict[str, Any]:
+        path = self.data_dir / "shadow_ranks.json"
+        if not path.exists():
+            return {"ranks": [], "costs": {}}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        ranks = {
+            str(entry["id"]): entry
+            for entry in data.get("ranks", [])
+            if isinstance(entry, dict) and entry.get("id")
+        }
+        return {"ranks": ranks, "costs": data.get("costs", {})}
 
     def load_dialogues(self) -> dict[str, dict[str, Any]]:
         path = self.data_dir / "dialogues.json"

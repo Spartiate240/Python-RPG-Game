@@ -7,9 +7,9 @@
     "base_stats": {"max_hp": 24, "attack": 7, "defense": 3, "speed": 4},
     "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 1},
     "tiers": [
-      {"tier": 1, "name": "Adepte", "growth_multiplier": 1.0, "stat_bonus": {}, "can_extract": false, "shadow_slots": 0, "requirements": {}},
-      {"tier": 2, "name": "Nécromancien", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3}, "can_extract": true, "shadow_slots": 1, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "necromancer_trial"}},
-      {"tier": 3, "name": "Seigneur des morts", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 5, "defense": 3}, "can_extract": true, "shadow_slots": 3, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "necromancer_trial_2"}}
+      {"tier": 1, "name": "Adepte", "growth_multiplier": 1.0, "stat_bonus": {}, "can_extract": false, "shadow_slots": 0, "max_shadow_rank": "soldier", "requirements": {}},
+      {"tier": 2, "name": "Nécromancien", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3}, "can_extract": true, "shadow_slots": 1, "max_shadow_rank": "elite", "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "necromancer_trial"}},
+      {"tier": 3, "name": "Seigneur des morts", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 5, "defense": 3}, "can_extract": true, "shadow_slots": 3, "max_shadow_rank": "knight", "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "necromancer_trial_2"}}
     ]
   },
   {

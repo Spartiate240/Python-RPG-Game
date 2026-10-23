@@ -111,6 +111,8 @@ class Battle:
             for member in self.party.active_members():
                 if hasattr(member, "gain_xp"):
                     member.gain_xp(total_xp)
+            for shadow in self.party.assigned_shadows:
+                shadow.gain_xp(total_xp)
             if self.party.leader is not None:
                 self.party.leader.gold += total_gold
             self.loot = [item_id for enemy in self.enemies for item_id in enemy.roll_loot()]

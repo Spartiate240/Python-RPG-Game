@@ -140,6 +140,21 @@ class InventoryManager:
             entries[item_id] = quantity - 1
         return True
 
+    def item_quantity(self, item_id: str) -> int:
+        return int(self.inventory.get("items", {}).get(item_id, 0))
+
+    def consume_item_quantity(self, item_id: str, quantity: int) -> bool:
+        quantity = max(0, int(quantity))
+        entries = self.inventory.setdefault("items", {})
+        if int(entries.get(item_id, 0)) < quantity:
+            return False
+        remaining = int(entries.get(item_id, 0)) - quantity
+        if remaining:
+            entries[item_id] = remaining
+        else:
+            entries.pop(item_id, None)
+        return True
+
     def use_item(self, item: object | None, target: Any | None) -> str | None:
         """Utilise un objet consommable sur une cible et retourne un feedback."""
         if item is None or target is None:

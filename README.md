@@ -73,6 +73,7 @@ Le système actuel :
 - calcule les dégâts à partir de l'attaque et de la défense ;
 - attribue l'expérience et l'or en cas de victoire ;
 - applique les montées de niveau et les bonus de statistiques liés à l'XP ;
+- attribue aussi l'expérience de victoire aux ombres assignées et applique leur progression de niveau ;
 - tire les drops configurés par l'ennemi et les ajoute à l'inventaire partagé ;
 - affiche un journal des actions récentes : dégâts, soins, capacités utilisées,
     défenses et combattants vaincus ;
@@ -307,6 +308,7 @@ modifier directement l'interface :
 - `enemies.json` : statistiques, récompenses et sprites des ennemis ;
 - `regions.json` : régions, zones et ennemis possibles ;
 - `items.json` : potions et matériaux ;
+- `shadow_ranks.json` : rangs, auras et coûts de promotion des ombres ;
 - `weapons.json` : armes et dégâts ;
 - `armor.json` : armures et bonus ;
 - `pets.json` : compagnons/familiers et effets ;
@@ -340,8 +342,14 @@ limites actuelles sont :
 - le nécromancien peut extraire trois fois une ombre après une victoire à
     partir du tier 2 ; les ombres assignées peuvent être invoquées en combat
     et reviennent avec tous leurs PV après la rencontre.
-- les ombres n'ont pas de progression propre : elles ne gagnent pas d'XP et
-    ne possèdent pas de rang.
+- les ombres assignées gagnent l'XP des victoires et recalculent leurs
+    statistiques à chaque niveau selon leur rang ;
+- les cinq rangs d'ombre, leurs coûts en matériaux et le plafond lié au tier du
+    nécromancien sont jouables depuis l'onglet « Armée des ombres » ;
+- une extraction réussie d'un type déjà possédé convertit le doublon en
+    essence d'ombre et en XP pour l'ombre existante ;
+- les promotions d'ombre utilisent encore des sprites placeholders lorsque les
+    ressources d'objets ou d'ennemis ne sont pas disponibles.
 
 ## Pistes d'évolution
 

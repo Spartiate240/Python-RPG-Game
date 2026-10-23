@@ -26,5 +26,29 @@
         "value": 1,
         "rarity": "common",
         "sprite": "assets/sprites/items/bone.png"
+    },
+    {
+        "id": "skeleton_bone",
+        "name": "Os de squelette",
+        "type": "material",
+        "value": 2,
+        "rarity": "common",
+        "sprite": "assets/sprites/items/skeleton_bone.png"
+    },
+    {
+        "id": "wolf_fang",
+        "name": "Croc de loup",
+        "type": "material",
+        "value": 2,
+        "rarity": "common",
+        "sprite": "assets/sprites/items/wolf_fang.png"
+    },
+    {
+        "id": "shadow_essence",
+        "name": "Essence d'ombre",
+        "type": "material",
+        "value": 10,
+        "rarity": "rare",
+        "sprite": "assets/sprites/items/shadow_essence.png"
     }
 ]

@@ -49,6 +49,9 @@ class Party:
         self.shadows.append(shadow)
         return True
 
+    def shadow_for_enemy(self, enemy_id: str) -> Shadow | None:
+        return next((shadow for shadow in self.shadows if shadow.enemy_id == enemy_id), None)
+
     def toggle_shadow_assignment(self, shadow: Shadow) -> bool:
         if shadow.enemy_id in self.assigned_shadow_ids:
             self.assigned_shadow_ids.remove(shadow.enemy_id)
@@ -134,12 +137,16 @@ class Party:
         import json
         from pathlib import Path
 
-        path = Path(__file__).resolve().parents[1] / "data" / "enemies.json"
+        root = Path(__file__).resolve().parents[1]
+        path = root / "data" / "enemies.json"
         catalog = {entry["id"]: entry for entry in json.loads(path.read_text(encoding="utf-8"))}
+        rank_payload = json.loads((root / "data" / "shadow_ranks.json").read_text(encoding="utf-8"))
+        ranks = {entry["id"]: entry for entry in rank_payload.get("ranks", [])}
         for entry in entries:
             enemy_id = entry.get("enemy_id")
             if enemy_id in catalog:
-                self.shadows.append(Shadow.from_enemy_data(enemy_id, catalog[enemy_id], entry.get("level", 1), entry.get("xp", 0)))
+                rank_id = entry.get("rank_id", "soldier")
+                self.shadows.append(Shadow.from_enemy_data(enemy_id, catalog[enemy_id], entry.get("level", 1), entry.get("xp", 0), rank_id, ranks.get(rank_id, ranks.get("soldier"))))
         owned = {shadow.enemy_id for shadow in self.shadows}
         self.assigned_shadow_ids = [enemy_id for enemy_id in assigned if enemy_id in owned]
 

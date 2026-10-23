@@ -34,9 +34,27 @@
     "skills": ["bone_shot", "bone_wall"],
     "drops": {
       "bone": {"quantity": 1, "chance": 0.7},
+      "skeleton_bone": {"quantity": 1, "chance": 0.85},
       "fire_staff": {"quantity": 1, "chance": 0.1}
     },
     "sprite": "assets/sprites/enemies/skeleton.gif", "extractable": true, "extraction_difficulty": 30
+  },
+  {
+    "id": "wolf",
+    "name": "Loup des bois",
+    "type": "beast",
+    "health": 9,
+    "defense": 1,
+    "damage": 14,
+    "speed": 5,
+    "level": 2,
+    "rarity": "common",
+    "given_exp": 4,
+    "skills": ["slash"],
+    "drops": {"wolf_fang": {"quantity": 1, "chance": 0.8}},
+    "sprite": "assets/sprites/enemies/wolf.png",
+    "extractable": true,
+    "extraction_difficulty": 25
   },
   {
     "id": "bronze_guardian",

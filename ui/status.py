@@ -6,8 +6,9 @@ from typing import Any
 
 import pygame
 
-from ui.theme import ACCENT, ACCENT_2, MUTED, PANEL, PANEL_2, TEXT
+from ui.theme import ACCENT, ACCENT_2, MUTED, PANEL, PANEL_2, SUCCESS, TEXT
 from ui.widgets import Button
+from progression.level_manager import LevelManager
 
 
 STATUS_PANEL_RECT = pygame.Rect(50, 60, 1180, 620)
@@ -42,16 +43,24 @@ class StatusScreen:
     def army_buttons(app: Any) -> list[Button]:
         if not StatusScreen.has_necromancer(app) or app.party is None:
             return []
-        return [
-            Button(
+        buttons: list[Button] = []
+        for index, shadow in enumerate(app.party.shadows):
+            x = 180 + (index % 3) * 345
+            y = 345 + (index // 3) * 190
+            buttons.append(Button(
                 f"{shadow.name} {'[active]' if shadow.enemy_id in app.party.assigned_shadow_ids else '[inactive]'}",
-                pygame.Rect(180 + (index % 2) * 430, 235 + (index // 2) * 70, 390, 52),
+                pygame.Rect(x, y, 315, 42),
                 "toggle_shadow",
                 payload={"shadow": shadow},
                 enabled=shadow.enemy_id in app.party.assigned_shadow_ids or len(app.party.assigned_shadow_ids) < app.party.shadow_slots(),
-            )
-            for index, shadow in enumerate(app.party.shadows)
-        ]
+            ))
+            buttons.append(Button(
+                "Voir la montée de rang",
+                pygame.Rect(x + 160, y + 142, 155, 32),
+                "open_shadow_rank",
+                payload={"shadow": shadow},
+            ))
+        return buttons
 
     @staticmethod
     def selected_member(app: Any) -> Any | None:
@@ -179,7 +188,10 @@ class StatusScreen:
             if app.status_tab == "army":
                 for button in self.army_buttons(app):
                     if button.enabled and button.rect.collidepoint(position):
-                        app.party.toggle_shadow_assignment(button.payload["shadow"])
+                        if button.action == "toggle_shadow":
+                            app.party.toggle_shadow_assignment(button.payload["shadow"])
+                        else:
+                            app._activate_button(button.action, button.payload)
                         return
                 return
         for button in self.buttons():
@@ -284,4 +296,34 @@ class StatusScreen:
             label = "Case libre" if unlocked else f"Tier {index + 2} requis"
             app._draw_centered_text(label, rect.center, app.font_small, TEXT if unlocked else MUTED)
         app._draw_text("Ombres possédées", (180, 315), app.font, ACCENT)
+        thresholds = LevelManager().thresholds
+        for index, shadow in enumerate(app.party.shadows):
+            x = 180 + (index % 3) * 345
+            y = 345 + (index // 3) * 190
+            rect = pygame.Rect(x, y, 315, 170)
+            app._draw_panel(rect, PANEL_2)
+            app.screen.blit(app.renderer.shadow_sprite(shadow, (58, 58)), (x + 12, y + 54))
+            rank = app.catalogs.shadow_ranks["ranks"].get(shadow.rank_id, {})
+            app._draw_text(f"Niv. {shadow.level}", (x + 82, y + 52), app.font_small, TEXT)
+            app._draw_text(str(rank.get("name", "Soldat")), (x + 82, y + 78), app.font_small, tuple(rank.get("color", ACCENT)))
+            current_threshold = thresholds.get(shadow.level, 0)
+            next_threshold = thresholds.get(shadow.level + 1)
+            progress = 1.0 if next_threshold is None else max(0.0, min(1.0, (shadow.xp - current_threshold) / max(1, next_threshold - current_threshold)))
+            bar = pygame.Rect(x + 82, y + 108, 215, 12)
+            pygame.draw.rect(app.screen, (35, 25, 20), bar)
+            pygame.draw.rect(app.screen, SUCCESS, pygame.Rect(bar.x, bar.y, int(bar.width * progress), bar.height))
+            pygame.draw.rect(app.screen, ACCENT, bar, width=1)
+            app._draw_text(f"XP {shadow.xp}", (x + 82, y + 125), app.font_small, MUTED)
+            self.draw_shadow_badge(app, (x + 282, y + 72), shadow.rank_id)
         app._draw_buttons(self.army_buttons(app))
+
+    @staticmethod
+    def draw_shadow_badge(app: Any, center: tuple[int, int], rank_id: str) -> None:
+        color = tuple(app.catalogs.shadow_ranks["ranks"].get(rank_id, {}).get("color", ACCENT))
+        x, y = center
+        if rank_id == "marshal":
+            pygame.draw.polygon(app.screen, color, [(x - 13, y + 8), (x - 10, y - 10), (x, y - 3), (x + 10, y - 10), (x + 13, y + 8)])
+        else:
+            count = max(1, min(4, list(app.catalogs.shadow_ranks["ranks"]).index(rank_id) + 1))
+            for offset in range(count):
+                pygame.draw.polygon(app.screen, color, [(x - 16 + offset * 10, y - 4), (x - 11 + offset * 10, y + 5), (x - 6 + offset * 10, y - 4)])

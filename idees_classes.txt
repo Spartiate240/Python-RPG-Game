@@ -1,0 +1,88 @@
+Knight:
+- Scquire -> Knight -> Lord -> spellblade/knight
+                            -> praetorian
+Dark knight -> Death knight/dragon knight
+
+Believer/Holy classes:
+Acolyte -> adept -> cleric     -> bishop  -> patriarch?
+                 -> inquisitor -> holy guardian -> paladin
+
+
+Veteran -> Warrior -> Berserker -> Jarl
+                   -> Swordsman -> champion ->
+
+
+
+Mage:
+- adept -> conjurer -> enchanter -> magician -> Spelldancer -> archmage
+                                             -> Geomancer/astramancer/ chronomancer/ <>mancer
+                                             -> Elemental mage
+
+Sorcerer
+- wizard -> warlock
+
+Hunter:
+hunter -> Ranger -> Warden ->
+
+
+Asian:
+Samurai -> Daimyo -> Shogun
+
+
+Necromancer:
+reanimator -> necromancer -> necrolord
+
+
+Theif:
+- Robber -> Burglar -> thief -> Master theif
+
+Assassin:
+- killer -> murderer -> slayer -> executioner -> assassin -> Master assassin
+
+Titres après:
+Prodigious, Paragon, Prime, Supreme, Eternal
+
+Sources vérifiées:
+https://dungeonsdragons.fandom.com/wiki/Level_title
+https://wiki.wizard101central.com/wiki/Basic:Titles
+https://tropedia.fandom.com/wiki/Fantasy_Character_Classes
+
+
+KNIGHT
+Squire → Knight ─┬─ Spellblade → Runeknight → Archblade
+                 ├─ Lord → <Je ne sais pas...> → Praetorian
+                 └─ Dark Knight ─┬─ Death Knight → Doom Knight
+                    (quête)      └─ Dragon Knight → Dragonlord
+
+WARRIOR
+Recruit → Warrior ─┬─ Berserker → Jarl → Warlord
+                   └─ Swordsman → Champion → Weapon Master
+
+HOLY
+Acolyte → Initiate ─┬─ Cleric → Bishop → Patriarch          (sorts, bénédictions)
+                    └─ Inquisitor → Holy Guardian → Paladin (combat)
+
+MAGE
+Apprentice → Conjurer → Magician ─┬─ Spelldancer → Archmage
+                                  ├─ Geomancer → Elemental Sovereign
+                                  └─ Astramancer → Zodiac Sage
+
+SORCERER
+Hexer → Sorcerer → Occultist → Warlock → Doomcaller
+
+HUNTER
+Hunter → Ranger ─┬─ Trapper → Tracker → Warden           (traque, pièges)
+                 └─ Beastcaller → Beastmaster → Master of the Wild
+
+SAMURAI
+Ashigaru → Bushi → Samurai → Daimyo → Shogun
+                  (branche optionnelle au T3 : Ronin → Kensei → Sword Saint)
+
+NECROMANCER
+Reanimator → Necromancer → Necrolord → Lich → Lich King
+
+THIEF
+Cutpurse → Thief → Burglar → Master Thief → Thief King
+
+ASSASSIN
+Cutthroat → Slayer → Executioner → Assassin → Master Assassin

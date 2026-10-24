@@ -24,12 +24,46 @@ class ClassService:
             if member.class_id not in self.class_catalog:
                 member.class_id = "warrior"
                 member.tier = 1
+            member.class_node_id = getattr(member, "class_node_id", None) or self.default_node_id(member.class_id, member.tier)
+            state = self.progression["classes"].setdefault(member.class_id, {})
+            state["unlocked"] = True
+            state.setdefault("mastery", 0)
+            if "mastery_required" not in state or (int(member.tier) < 5 and int(state.get("mastery_required", 0)) == 0):
+                state["mastery_required"] = self.next_mastery_required(member.class_id, member.tier)
             member.bind_classes(self.class_catalog, self.progression)
+
+    def default_node_id(self, class_id: str, tier: int = 1) -> str:
+        class_data = self.class_catalog.get(class_id, {})
+        tiers = class_data.get("tiers", [])
+        tier_data = next((entry for entry in tiers if int(entry.get("tier", 1)) == int(tier)), {})
+        nodes = tier_data.get("nodes", [])
+        if nodes:
+            return str(nodes[0].get("id", f"{class_id}_t{tier}"))
+        return f"{class_id}_t{tier}"
+
+    def mastery_required(self, class_id: str, tier: int) -> int:
+        class_data = self.class_catalog.get(class_id, {})
+        tiers = class_data.get("tiers", [])
+        tier_data = next((entry for entry in tiers if int(entry.get("tier", 1)) == int(tier)), {})
+        return int(tier_data.get("mastery_required", max(100, int(tier) * 100)))
+
+    def next_mastery_required(self, class_id: str, tier: int) -> int:
+        next_tier = int(tier) + 1
+        if not any(int(entry.get("tier", 1)) == next_tier for entry in self.class_catalog.get(class_id, {}).get("tiers", [])):
+            return 0
+        return self.mastery_required(class_id, next_tier)
 
     def state(self, class_id: str) -> dict[str, Any]:
         member = self.party.leader if self.party else None
         selected = member is not None and member.class_id == class_id
-        return {"unlocked": selected, "tier": member.tier if selected else 1}
+        progress = self.progression.setdefault("classes", {}).setdefault(class_id, {})
+        return {
+            "unlocked": selected,
+            "tier": member.tier if selected else 1,
+            "mastery": int(progress.get("mastery", 0)),
+            "mastery_required": int(progress.get("mastery_required", self.next_mastery_required(class_id, member.tier if selected else 1))),
+            "node_id": getattr(member, "class_node_id", None) if selected else self.default_node_id(class_id),
+        }
 
     def _requirements(self, class_id: str, unlock: dict[str, Any] | None = None) -> list[str]:
         class_data = self.class_catalog.get(class_id, {})
@@ -74,8 +108,38 @@ class ClassService:
             return "Aucun personnage principal disponible."
         leader = self.party.leader
         leader.set_class(class_id, 1, preserve_hp_ratio=False)
+        leader.class_node_id = self.default_node_id(class_id, 1)
+        self.progression.setdefault("classes", {})[class_id] = {
+            "mastery": 0,
+            "mastery_required": self.next_mastery_required(class_id, 1),
+            "unlocked": True,
+        }
+        self.progression["active_class"] = class_id
         leader.bind_classes(self.class_catalog, self.progression)
         return f"Classe choisie : {self.class_catalog[class_id].get('name', class_id)}."
+
+    def choose_node(self, node_id: str) -> str:
+        leader = self.party.leader if self.party else None
+        if leader is None:
+            return "Aucun personnage principal disponible."
+        class_id, tier_data, node = self.node(node_id)
+        if class_id is None or tier_data is None or node is None:
+            return "Cette spécialisation n'existe pas."
+        if leader.class_id != class_id:
+            return "Cette spécialisation appartient à une autre voie."
+        tier = int(tier_data.get("tier", 1))
+        if tier > leader.tier:
+            return "Ce tier n'est pas encore accessible."
+        leader.class_node_id = node_id
+        return f"Spécialisation choisie : {node.get('name', node_id)}."
+
+    def node(self, node_id: str) -> tuple[str | None, dict[str, Any] | None, dict[str, Any] | None]:
+        for class_id, class_data in self.class_catalog.items():
+            for tier_data in class_data.get("tiers", []):
+                for node in tier_data.get("nodes", []):
+                    if str(node.get("id")) == node_id:
+                        return class_id, tier_data, node
+        return None, None, None
 
     def learn(self, class_id: str) -> str:
         return self.choose(class_id)
@@ -89,7 +153,14 @@ class ClassService:
         return self._requirements(class_id, requirements)
 
     def gain_mastery(self, amount: int = 0) -> str | None:
-        return None
+        leader = self.party.leader if self.party else None
+        if leader is None or amount <= 0:
+            return None
+        class_id = leader.class_id
+        state = self.progression.setdefault("classes", {}).setdefault(class_id, {})
+        state["mastery"] = int(state.get("mastery", 0)) + int(amount)
+        state["mastery_required"] = self.next_mastery_required(class_id, leader.tier)
+        return f"Maîtrise de {self.class_catalog.get(class_id, {}).get('name', class_id)} : {state['mastery']}/{state['mastery_required']}"
 
     def requirements(self, class_id: str) -> list[str]:
         if self.state(class_id).get("unlocked") or self.class_catalog.get(class_id, {}).get("default"):

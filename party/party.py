@@ -167,6 +167,7 @@ def _companion_to_dict(companion: Companion) -> dict:
         "role": companion.role,
         "class_id": companion.class_id,
         "tier": companion.tier,
+        "class_node_id": getattr(companion, "class_node_id", None),
         "level": companion.level,
         "xp": companion.xp,
         "weapon_primary": _item_id(companion.weapon_primary),
@@ -196,6 +197,7 @@ def _companion_from_dict(data: dict) -> Companion:
         xp=data.get("xp", 0),
         class_id=data.get("class_id", "warrior"),
         tier=data.get("tier", 1),
+        class_node_id=data.get("class_node_id"),
     )
     if data.get("reward_id") is not None:
         companion.reward_id = data["reward_id"]

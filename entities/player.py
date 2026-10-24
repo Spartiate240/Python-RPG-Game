@@ -64,8 +64,9 @@ class Player(Ally):
         rank: str = "iron",
         class_id: str = "warrior",
         tier: int = 1,
+        class_node_id: str | None = None,
     ) -> None:
-        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory, class_id, tier)
+        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory, class_id, tier, class_node_id)
         self.gold = gold
         self.rank = rank
 
@@ -103,6 +104,7 @@ class Player(Ally):
             "rank": self.rank,
             "class_id": self.class_id,
             "tier": self.tier,
+            "class_node_id": self.class_node_id,
             "weapon_primary": _item_id(self.weapon_primary),
             "weapon_secondary": _item_id(self.weapon_secondary),
             "helmet": _item_id(self.helmet),
@@ -131,6 +133,7 @@ class Player(Ally):
             rank=data.get("rank", "iron"),
             class_id=data.get("class_id", "warrior"),
             tier=data.get("tier", 1),
+            class_node_id=data.get("class_node_id"),
         )
         if data.get("max_hp"):
             player._saved_hp_ratio = max(0.0, min(1.0, int(data.get("hp", data["max_hp"])) / int(data["max_hp"])))

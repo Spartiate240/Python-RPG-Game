@@ -326,23 +326,34 @@ spritesheets.
 Le socle jouable et les principaux systèmes de progression sont en place. Les
 limites actuelles sont :
 
-- les compétences de soin et leurs effets persistants restent à compléter ;
-- la boutique permet l'achat, mais pas encore la revente depuis l'interface ;
-- les drops dont l'identifiant est absent des catalogues sont ignorés ;
-- les effets textuels de certains titres ne modifient pas encore les règles
     de combat.
-- le reset journalier utilise le jour civil local de la machine ; il ne gère
     pas encore de fuseau horaire ou d'heure serveur.
-- les notes du tableau affichent les trois premières quêtes du catalogue.
-- les ennemis d'épreuve de classe utilisent encore des placeholders tant que
     leurs sprites dédiés ne sont pas ajoutés ; leurs chemins sont déjà déclarés
     dans `data/enemies.json`.
-- les compétences de classe et les effets passifs de l'ancien prototype de
     maîtrise ne font pas partie du système de classes actuel.
+Chaque membre possède une voie de classe et un tier. Le catalogue propose les
+voies Chevalier, Guerrier, Sacré, Mage, Sorcier, Chasseur, Samouraï,
+Nécromancien, Voleur et Assassin. Chaque voie comporte cinq tiers, accessibles
+aux niveaux 20, 40, 60, 80 et 100, ainsi que des nœuds de spécialisation pour
+les branches. Une seule branche peut être choisie par personnage.
+
+Les statistiques sont recalculées depuis [data/classes.json](data/classes.json)
+avec la base de classe, la croissance par niveau, le multiplicateur du tier,
+les bonus fixes, les bonus en pourcentage des tiers avancés et l'équipement.
+Les skills déclarés par le nœud choisi sont proposés pendant les combats. Une
+maîtrise est conservée par voie dans la progression ; les victoires la font
+progresser et elle est requise avec le niveau et l'épreuve de classe pour
+passer au tier suivant. Une nouvelle partie demande la classe du héros ; les
+compagnons reçoivent leur classe depuis leurs données. Les champs
 - le nécromancien peut extraire trois fois une ombre après une victoire à
     partir du tier 2 ; les ombres assignées peuvent être invoquées en combat
-    et reviennent avec tous leurs PV après la rencontre.
-- les ombres assignées gagnent l'XP des victoires et recalculent leurs
+        les compétences de classe sont actuellement réutilisées depuis le petit
+        catalogue de skills existant ; leurs effets spécialisés restent limités aux
+        effets déjà compris par le moteur de combat.
+- les anciennes sauvegardes sans `class_node_id` ou maîtrise sont complétées
+        automatiquement avec le premier nœud et une maîtrise nulle.
+- les ennemis des nouvelles épreuves de classe utilisent encore le système de
+        placeholder tant que leurs entrées et sprites dédiés ne sont pas ajoutés.
     statistiques à chaque niveau selon leur rang ;
 - les cinq rangs d'ombre, leurs coûts en matériaux et le plafond lié au tier du
     nécromancien sont jouables depuis l'onglet « Armée des ombres » ;

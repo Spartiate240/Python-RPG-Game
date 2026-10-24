@@ -67,6 +67,7 @@ class Catalogs:
                     "conditions": [
                         {"type": "level", "target": int(requirements.get("min_level", 1))},
                         {"type": "min_rank", "rank": requirements.get("min_rank", "iron")},
+                        {"type": "class_mastery", "class_id": class_id, "target": int(tier.get("mastery_required", 0))},
                         {"type": "defeat_enemy", "enemy_id": enemy_id, "target": 1},
                     ],
                     "rewards": {"tier_up": {"class_id": class_id, "tier": int(tier["tier"])}},
@@ -90,11 +91,19 @@ class Catalogs:
 
     def load_classes(self) -> dict[str, dict[str, Any]]:
         data = json.loads((self.data_dir / "classes.json").read_text(encoding="utf-8"))
-        return {
+        classes = {
             str(entry.get("id", entry.get("line_id"))): {"id": entry.get("id", entry.get("line_id")), **entry}
             for entry in data
             if isinstance(entry, dict) and entry.get("id", entry.get("line_id"))
         }
+        necromancer = classes.get("necromancer")
+        if necromancer is not None:
+            for tier in necromancer.get("tiers", []):
+                tier_id = int(tier.get("tier", 1))
+                tier.setdefault("can_extract", tier_id >= 2)
+                tier.setdefault("shadow_slots", 0 if tier_id == 1 else min(5, tier_id - 1))
+                tier.setdefault("max_shadow_rank", "soldier" if tier_id == 1 else "elite" if tier_id == 2 else "knight")
+        return classes
 
     def load_shadow_ranks(self) -> dict[str, Any]:
         path = self.data_dir / "shadow_ranks.json"

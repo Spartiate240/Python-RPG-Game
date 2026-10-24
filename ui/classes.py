@@ -1,4 +1,4 @@
-"""Ecran d'apprentissage des classes."""
+"""Ecran navigable des voies, tiers et specialisations."""
 
 from __future__ import annotations
 
@@ -6,88 +6,71 @@ from typing import Any
 
 import pygame
 
-from ui.theme import ACCENT, ACCENT_2, MUTED, PANEL, SUCCESS, TEXT
+from ui.theme import ACCENT, ACCENT_2, DANGER, MUTED, PANEL, PANEL_2, SUCCESS, TEXT
 from ui.widgets import Button
 
 
 class ClassesScreen:
-    """Affiche les cartes de choix de classe et leur emblème."""
+    """Affiche une voie a la fois et conserve l'arbre visible dans la meme vue."""
+
+    def _selected_id(self, app: Any) -> str:
+        selected = getattr(app, "selected_class_id", None)
+        if selected in app.catalogs.classes:
+            return selected
+        return next(iter(app.catalogs.classes), "warrior")
 
     def buttons(self, app: Any) -> list[Button]:
-        buttons = [Button("Retour", pygame.Rect(1075, 610, 130, 40), "back")]
-        card_width = 270
-        gap = 15
-        for index, class_id in enumerate(app.catalogs.classes):
-            class_data = app.catalogs.classes[class_id]
-            buttons.append(
-                Button(
-                    "Choisir",
-                    pygame.Rect(80 + index * (card_width + gap), 555, card_width, 48),
-                    f"choose_class:{class_id}",
-                )
-            )
+        buttons = [Button("Retour", pygame.Rect(1075, 625, 130, 40), "back")]
+        class_ids = list(app.catalogs.classes)
+        for index, class_id in enumerate(class_ids):
+            row = index % 10
+            buttons.append(Button(app.catalogs.classes[class_id].get("name", class_id), pygame.Rect(75, 125 + row * 43, 205, 35), f"class_view:{class_id}"))
+        class_data = app.catalogs.classes.get(self._selected_id(app), {})
+        for tier in class_data.get("tiers", []):
+            tier_id = int(tier.get("tier", 1))
+            for node_index, node in enumerate(tier.get("nodes", [])):
+                x = 330 + (tier_id - 1) * 175
+                y = 190 + node_index * 92
+                buttons.append(Button("Choisir", pygame.Rect(x, y + 47, 150, 28), f"choose_node:{node.get('id')}"))
         return buttons
 
     def render(self, app: Any) -> None:
-        app._draw_panel(pygame.Rect(60, 50, 1160, 610), PANEL)
-        app._draw_text("Choisir une classe", (95, 85), app.font_big, ACCENT)
-        app._draw_text("Chaque voie possède ses propres statistiques et tiers.", (95, 135), app.font_small, MUTED)
-        if app.party is not None and app.party.leader is not None:
-            app._draw_text(
-                f"Classe actuelle : {app.party.leader.class_name} — le changement conserve le niveau et l'XP, mais recommence au tier 1.",
-                (95, 155),
-                app.font_small,
-                TEXT,
-            )
+        selected_id = self._selected_id(app)
+        app.selected_class_id = selected_id
+        class_data = app.catalogs.classes.get(selected_id, {})
+        state = app.class_service.state(selected_id)
+        app._draw_panel(pygame.Rect(45, 35, 1190, 640), PANEL)
+        app._draw_text("Voies et spécialisations", (75, 62), app.font_big, ACCENT)
+        app._draw_text("Choisissez une voie, puis suivez sa progression de tier en tier.", (75, 105), app.font_small, MUTED)
+        app._draw_panel(pygame.Rect(65, 125, 225, 470), PANEL_2)
         for index, class_id in enumerate(app.catalogs.classes):
-            class_data = app.catalogs.classes[class_id]
-            rect = pygame.Rect(65 + index * 285, 175, 270, 350)
-            is_necromancer = class_id == "necromancer"
-            card_color = (35, 27, 38) if is_necromancer else (74, 49, 29)
-            app._draw_panel(rect, card_color)
-            icon_id = {"sword": 23, "staff": 24, "bow": 25, "skull": 26}.get(class_data.get("emblem"), 23)
-            icon = app.renderer.load_asset_sprite("icons", str(icon_id), (64, 64))
-            if is_necromancer:
-                icon = icon.copy()
-                icon.fill((82, 70, 105, 190), special_flags=pygame.BLEND_RGBA_MULT)
-            app.screen.blit(icon, icon.get_rect(center=(rect.centerx, rect.y + 72)))
-            app._draw_centered_text(str(class_data.get("name", class_id)), (rect.centerx, rect.y + 145), app.font, (151, 126, 181) if is_necromancer else ACCENT_2)
-            description = str(class_data.get("description", ""))
-            words, line = description.split(), ""
-            lines: list[str] = []
-            for word in words:
-                candidate = f"{line} {word}".strip()
-                if line and app.font_small.size(candidate)[0] > rect.width - 28:
-                    lines.append(line)
-                    line = word
-                else:
-                    line = candidate
-            if line:
-                lines.append(line)
-            for line_index, text in enumerate(lines[:3]):
-                app._draw_centered_text(text, (rect.centerx, rect.y + 180 + line_index * 20), app.font_small, TEXT)
-            stats = class_data.get("base_stats", {})
-            stat_labels = (("PV", "max_hp"), ("ATQ", "attack"), ("DEF", "defense"), ("VIT", "speed"))
-            for stat_index, (label, key) in enumerate(stat_labels):
-                x = rect.x + 24 + (stat_index % 2) * 118
-                y = rect.y + 250 + (stat_index // 2) * 30
-                app._draw_text(f"{label} {stats.get(key, 0)}", (x, y), app.font_small, MUTED)
-            app._draw_centered_text("Tier 1", (rect.centerx, rect.y + 315), app.font_small, TEXT)
+            color = ACCENT if class_id == selected_id else TEXT
+            app._draw_text(str(app.catalogs.classes[class_id].get("name", class_id)), (82, 133 + index * 43), app.font_small, color)
+        app._draw_panel(pygame.Rect(310, 125, 890, 470), (63, 42, 25))
+        app._draw_text(str(class_data.get("name", selected_id)), (335, 143), app.font, ACCENT_2)
+        app._draw_text(f"Maîtrise : {state['mastery']} / {state['mastery_required']}", (700, 148), app.font_small, SUCCESS if state["mastery"] >= state["mastery_required"] else MUTED)
+        app._draw_text(str(class_data.get("description", "")), (335, 176), app.font_small, TEXT)
+        leader = app.party.leader if app.party else None
+        level = int(getattr(leader, "level", 1))
+        for tier in class_data.get("tiers", []):
+            tier_id = int(tier.get("tier", 1))
+            x = 330 + (tier_id - 1) * 175
+            unlocked = bool(leader and leader.class_id == selected_id and tier_id <= int(leader.tier))
+            requirement = int(tier.get("requirements", {}).get("min_level", tier_id * 20)) if tier_id > 1 else 1
+            app._draw_text(f"T{tier_id}  Nv.{requirement}", (x, 220), app.font_small, SUCCESS if unlocked else MUTED)
+            for node_index, node in enumerate(tier.get("nodes", [])):
+                y = 255 + node_index * 92
+                node_id = str(node.get("id"))
+                selected = node_id == getattr(leader, "class_node_id", None)
+                color = ACCENT if selected else TEXT
+                app._draw_panel(pygame.Rect(x, y, 160, 75), (91, 62, 34) if selected else PANEL_2)
+                app._draw_centered_text(str(node.get("name", node_id)), (x + 80, y + 18), app.font_small, color)
+                skills = ", ".join(str(skill) for skill in node.get("skills", [])) or "Aucun skill"
+                app._draw_centered_text(skills[:22], (x + 80, y + 40), app.font_small, MUTED)
+                percent = node.get("percent_bonus", {})
+                if percent:
+                    bonus = ", ".join(f"{key} +{value}%" for key, value in percent.items())
+                    app._draw_centered_text(bonus[:23], (x + 80, y + 60), app.font_small, SUCCESS)
         if app.status_feedback:
-            app._draw_text(app.status_feedback, (220, 570), app.font_small, TEXT)
+            app._draw_text(app.status_feedback, (325, 610), app.font_small, DANGER if "pas" in app.status_feedback.lower() else TEXT)
         app._draw_buttons(self.buttons(app))
-
-    @staticmethod
-    def draw_emblem(app: Any, emblem: str, x: int, y: int) -> None:
-        color = ACCENT
-        if emblem == "staff":
-            pygame.draw.line(app.screen, color, (x - 10, y + 35), (x + 8, y - 35), 8)
-            pygame.draw.circle(app.screen, color, (x + 12, y - 38), 12, 3)
-        elif emblem == "bow":
-            pygame.draw.arc(app.screen, color, pygame.Rect(x - 28, y - 38, 56, 76), -1.2, 1.2, 6)
-            pygame.draw.line(app.screen, color, (x - 10, y - 30), (x - 10, y + 30), 3)
-            pygame.draw.line(app.screen, color, (x - 10, y), (x + 30, y), 4)
-        else:
-            pygame.draw.line(app.screen, color, (x - 25, y + 25), (x + 25, y - 25), 8)
-            pygame.draw.line(app.screen, color, (x - 10, y + 8), (x + 8, y + 26), 7)
-            pygame.draw.line(app.screen, color, (x - 25, y + 25), (x - 38, y + 38), 5)

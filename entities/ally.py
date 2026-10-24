@@ -30,6 +30,7 @@ class Ally(Combatant):
         inventory: list[Any] | None = None,
         class_id: str = "warrior",
         tier: int = 1,
+        class_node_id: str | None = None,
     ) -> None:
         super().__init__(name, max_hp, attack, defense, speed)
         self._fallback_stats = {
@@ -42,6 +43,7 @@ class Ally(Combatant):
         self.xp = xp
         self.class_id = class_id
         self.tier = max(1, int(tier))
+        self.class_node_id = class_node_id
         self.inventory: list[Any] = inventory or []
 
         self.weapon_primary: Any | None = None
@@ -82,7 +84,10 @@ class Ally(Combatant):
         growth = int(class_data.get("growth", {}).get(stat, 0))
         multiplier = float(self.tier_data.get("growth_multiplier", 1.0))
         bonus = int(self.tier_data.get("stat_bonus", {}).get(stat, 0))
-        return int(round(base + growth * (self.level - 1) * multiplier + bonus))
+        value = base + growth * (self.level - 1) * multiplier + bonus
+        node = self.selected_class_node()
+        percent = float(node.get("percent_bonus", {}).get(stat, 0)) if node else 0.0
+        return int(round(value * (1.0 + percent / 100.0)))
 
     @property
     def attack(self) -> int:
@@ -226,7 +231,26 @@ class Ally(Combatant):
             return []
         class_data, state = active
         tier_index = max(0, min(int(state.get("tier", 1)) - 1, len(class_data.get("tiers", [])) - 1))
-        return list(class_data.get("tiers", [])[tier_index].get("effects", []))
+        tier_data = class_data.get("tiers", [])[tier_index]
+        effects = list(tier_data.get("effects", []))
+        node = self.selected_class_node()
+        if node:
+            effects.extend(node.get("effects", []))
+        return effects
+
+    def selected_class_node(self) -> dict[str, Any] | None:
+        node_id = getattr(self, "class_node_id", None)
+        if not node_id:
+            return None
+        for tier_data in self.class_data.get("tiers", []):
+            for node in tier_data.get("nodes", []):
+                if str(node.get("id")) == str(node_id):
+                    return node
+        return None
+
+    def class_skills(self) -> list[str]:
+        node = self.selected_class_node()
+        return list(node.get("skills", [])) if node else []
 
     def _effect_requirements_met(self, requirements: dict[str, Any]) -> bool:
         if not requirements:

@@ -123,6 +123,7 @@ class PygameApp:
         self.party: Party | None = None
         self.location: str | None = None
         self.selected_region_id: str | None = None
+        self.selected_class_id: str | None = None
         self.inventory: dict[str, dict[str, int]] = {"items": {}, "weapons": {}, "armors": {}, "pets": {}}
         self.battle: Battle | None = None
         self.evaluation_quest_id: str | None = None
@@ -320,7 +321,15 @@ class PygameApp:
             self.status_feedback = ""
         elif action == "classes":
             self.state = "classes"
+            self.selected_class_id = self.party.leader.class_id if self.party and self.party.leader else "warrior"
             self.status_feedback = ""
+        elif action.startswith("class_view:"):
+            class_id = action.split(":", 1)[1]
+            if class_id in self.catalogs.classes:
+                self.selected_class_id = class_id
+                self.status_feedback = ""
+        elif action.startswith("choose_node:"):
+            self.status_feedback = self.class_service.choose_node(action.split(":", 1)[1])
         elif action.startswith("learn_class:"):
             self.status_feedback = self.class_service.learn(action.split(":", 1)[1])
         elif action.startswith("choose_class:"):
@@ -611,11 +620,8 @@ class PygameApp:
         ]
         for equipment_type in set(filter(None, equipment_types)):
             stats[f"wins_with_{equipment_type}"] = int(stats.get(f"wins_with_{equipment_type}", 0)) + 1
-        active_id = self.progression.get("active_class")
-        class_data = self.catalogs.classes.get(active_id or "", {})
-        full_if = (class_data.get("mastery_gain") or {}).get("full_if") or {}
-        full = self._class_condition_met(leader, full_if)
-        mastery_xp = self.battle.total_xp if full and self.battle is not None else 0
+        active_id = leader.class_id
+        mastery_xp = self.battle.total_xp if self.battle is not None else 0
         feedback = self.class_service.gain_mastery(mastery_xp)
         if feedback:
             self.status_feedback = feedback

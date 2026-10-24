@@ -99,6 +99,9 @@ class ProgressionManager:
         elif condition_type == "min_rank":
             current = self._rank_index(self.current_rank_id())
             target = self._rank_index(str(condition.get("rank", "iron")))
+        elif condition_type == "class_mastery":
+            class_id = str(condition.get("class_id", ""))
+            current = int(self.progression.setdefault("classes", {}).get(class_id, {}).get("mastery", 0))
         else:
             current = 0
         return min(current, target), target

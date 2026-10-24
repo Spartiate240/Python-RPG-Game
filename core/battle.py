@@ -148,7 +148,7 @@ class Battle:
                     break
 
     def available_skills(self, actor: Combatant) -> list[SimpleNamespace]:
-        """Retourne les skills déclarés par les armes équipées de l'acteur."""
+        """Retourne les skills déclarés par les armes et la spécialisation."""
         skills: list[SimpleNamespace] = []
         for weapon_name in ("weapon_primary", "weapon_secondary"):
             weapon = getattr(actor, weapon_name, None)
@@ -157,6 +157,10 @@ class Battle:
                 skill_data = self.skill_catalog.get(skill_id)
                 if skill_data is not None:
                     skills.append(SimpleNamespace(**skill_data))
+        for skill_id in getattr(actor, "class_skills", lambda: [])():
+            skill_data = self.skill_catalog.get(skill_id)
+            if skill_data is not None and not any(skill.id == skill_id for skill in skills):
+                skills.append(SimpleNamespace(**skill_data))
         return skills
 
     def _resolve_skill(self, actor: Combatant, target: Combatant | None, skill: Any) -> None:

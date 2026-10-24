@@ -27,8 +27,9 @@ class Companion(Ally):
         inventory: list[Any] | None = None,
         class_id: str = "warrior",
         tier: int = 1,
+        class_node_id: str | None = None,
     ) -> None:
-        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory, class_id, tier)
+        super().__init__(name, max_hp, attack, defense, speed, level, xp, inventory, class_id, tier, class_node_id)
         self.role = role  # pilote l'IA de choose_action
 
     # ---- IA simple ----------------------------------------------

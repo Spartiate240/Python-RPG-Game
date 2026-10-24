@@ -1,54 +1,479 @@
 [
   {
-    "id": "necromancer",
-    "name": "Nécromancien",
+    "id": "knight",
+    "name": "Chevalier",
     "emblem": "sword",
-    "description": "Un maître des arts funestes qui arrache des ombres aux ennemis vaincus.",
-    "base_stats": {"max_hp": 24, "attack": 7, "defense": 3, "speed": 4},
-    "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 1},
+    "description": "Discipline, serment et acier.",
+    "base_stats": {"max_hp": 30, "attack": 8, "defense": 6, "speed": 4},
+    "growth": {"max_hp": 6, "attack": 2, "defense": 2, "speed": 1},
     "tiers": [
-      {"tier": 1, "name": "Adepte", "growth_multiplier": 1.0, "stat_bonus": {}, "can_extract": false, "shadow_slots": 0, "max_shadow_rank": "soldier", "requirements": {}},
-      {"tier": 2, "name": "Nécromancien", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3}, "can_extract": true, "shadow_slots": 1, "max_shadow_rank": "elite", "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "necromancer_trial"}},
-      {"tier": 3, "name": "Seigneur des morts", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 5, "defense": 3}, "can_extract": true, "shadow_slots": 3, "max_shadow_rank": "knight", "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "necromancer_trial_2"}}
+      {
+        "tier": 1, "name": "Écuyer", "mastery_required": 0,
+        "nodes": [
+          {"id": "knight_t1", "name": "Écuyer", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Chevalier", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "knight_trial_2"},
+        "nodes": [
+          {"id": "knight_t2", "name": "Chevalier", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Spellblade", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "knight_trial_3"},
+        "nodes": [
+          {"id": "knight_spellblade", "name": "Spellblade", "skills": ["slash"]},
+          {"id": "knight_lord", "name": "Lord", "skills": ["parry"]},
+          {"id": "knight_dark", "name": "Chevalier noir", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Runeknight", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "knight_trial_4"},
+        "nodes": [
+          {"id": "knight_runeknight", "name": "Runeknight", "parent_id": "knight_spellblade", "percent_bonus": {"attack": 10}},
+          {"id": "knight_praetorian", "name": "Praetorian", "parent_id": "knight_lord", "percent_bonus": {"defense": 10}},
+          {"id": "knight_death", "name": "Death Knight", "parent_id": "knight_dark", "percent_bonus": {"attack": 12}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Archblade", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "knight_trial_5"},
+        "nodes": [
+          {"id": "knight_archblade", "name": "Archblade", "parent_id": "knight_runeknight", "percent_bonus": {"attack": 20}},
+          {"id": "knight_doom", "name": "Doom Knight", "parent_id": "knight_death", "percent_bonus": {"attack": 22}},
+          {"id": "knight_dragonlord", "name": "Dragonlord", "parent_id": "knight_dark", "percent_bonus": {"max_hp": 20}}
+        ]
+      }
     ]
   },
   {
     "id": "warrior",
     "name": "Guerrier",
-    "emblem": "skull",
-    "description": "Un combattant robuste, maître des armes et des armures lourdes.",
+    "emblem": "sword",
+    "description": "Force brute et armes lourdes.",
     "base_stats": {"max_hp": 30, "attack": 8, "defense": 6, "speed": 4},
     "growth": {"max_hp": 6, "attack": 2, "defense": 2, "speed": 1},
     "tiers": [
-      {"tier": 1, "name": "Guerrier", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
-      {"tier": 2, "name": "Chevalier", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 10, "defense": 3}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "warrior_trial"}},
-      {"tier": 3, "name": "Paladin", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 20, "attack": 4, "defense": 5}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "warrior_trial_2"}}
+      {
+        "tier": 1, "name": "Recrue", "mastery_required": 0,
+        "nodes": [
+          {"id": "warrior_t1", "name": "Recrue", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Guerrier", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "warrior_trial_2"},
+        "nodes": [
+          {"id": "warrior_t2", "name": "Guerrier", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Berserker", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "warrior_trial_3"},
+        "nodes": [
+          {"id": "warrior_berserker", "name": "Berserker", "skills": ["slash"]},
+          {"id": "warrior_swordsman", "name": "Swordsman", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Jarl", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "warrior_trial_4"},
+        "nodes": [
+          {"id": "warrior_jarl", "name": "Jarl", "parent_id": "warrior_berserker", "percent_bonus": {"max_hp": 12}},
+          {"id": "warrior_champion", "name": "Champion", "parent_id": "warrior_swordsman", "percent_bonus": {"attack": 12}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Warlord", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "warrior_trial_5"},
+        "nodes": [
+          {"id": "warrior_warlord", "name": "Warlord", "parent_id": "warrior_jarl", "percent_bonus": {"attack": 20}},
+          {
+            "id": "warrior_weapon_master",
+            "name": "Weapon Master",
+            "parent_id": "warrior_champion",
+            "percent_bonus": {"attack": 22}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "holy",
+    "name": "Sacre",
+    "emblem": "staff",
+    "description": "Foi, soins et jugement.",
+    "base_stats": {"max_hp": 26, "attack": 8, "defense": 5, "speed": 4},
+    "growth": {"max_hp": 5, "attack": 2, "defense": 2, "speed": 1},
+    "tiers": [
+      {
+        "tier": 1, "name": "Acolyte", "mastery_required": 0,
+        "nodes": [
+          {"id": "holy_t1", "name": "Acolyte", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Initié", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "holy_trial_2"},
+        "nodes": [
+          {"id": "holy_t2", "name": "Initié", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Clerc", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "holy_trial_3"},
+        "nodes": [
+          {"id": "holy_cleric", "name": "Clerc", "skills": ["parry"]},
+          {"id": "holy_inquisitor", "name": "Inquisiteur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Évêque", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "holy_trial_4"},
+        "nodes": [
+          {"id": "holy_bishop", "name": "Évêque", "parent_id": "holy_cleric", "percent_bonus": {"max_hp": 10}},
+          {"id": "holy_guardian", "name": "Gardien sacré", "parent_id": "holy_inquisitor", "percent_bonus": {"defense": 15}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Patriarche", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "holy_trial_5"},
+        "nodes": [
+          {"id": "holy_patriarch", "name": "Patriarche", "parent_id": "holy_bishop", "percent_bonus": {"max_hp": 20}},
+          {"id": "holy_paladin", "name": "Paladin", "parent_id": "holy_guardian", "percent_bonus": {"attack": 20}}
+        ]
+      }
     ]
   },
   {
     "id": "mage",
     "name": "Mage",
     "emblem": "staff",
-    "description": "Un érudit des arcanes, fragile mais redoutable à distance.",
+    "description": "Érudition et puissance des arcanes.",
     "base_stats": {"max_hp": 22, "attack": 10, "defense": 3, "speed": 5},
     "growth": {"max_hp": 4, "attack": 3, "defense": 1, "speed": 2},
     "tiers": [
-      {"tier": 1, "name": "Mage", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
-      {"tier": 2, "name": "Arcaniste", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 5, "attack": 4, "speed": 2}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "mage_trial"}},
-      {"tier": 3, "name": "Archimage", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 10, "attack": 8, "speed": 4}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "mage_trial_2"}}
+      {
+        "tier": 1, "name": "Apprenti", "mastery_required": 0,
+        "nodes": [
+          {"id": "mage_t1", "name": "Apprenti", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Conjureur", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "mage_trial_2"},
+        "nodes": [
+          {"id": "mage_t2", "name": "Conjureur", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Magicien", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "mage_trial_3"},
+        "nodes": [
+          {"id": "mage_t3", "name": "Magicien", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Branches arcaniques", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "mage_trial_4"},
+        "nodes": [
+          {"id": "mage_spelldancer", "name": "Spelldancer", "skills": ["flame_wave"], "percent_bonus": {"attack": 20}},
+          {"id": "mage_geomancer", "name": "Géomancien", "skills": ["fireball"], "percent_bonus": {"attack": 18}},
+          {"id": "mage_astramancer", "name": "Astramancien", "skills": ["flame_wave"], "percent_bonus": {"speed": 18}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Maîtres arcaniques", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "mage_trial_5"},
+        "nodes": [
+          {"id": "mage_archmage", "name": "Archimage", "parent_id": "mage_spelldancer", "percent_bonus": {"attack": 30}},
+          {
+            "id": "mage_elemental",
+            "name": "Souverain élémentaire",
+            "parent_id": "mage_geomancer",
+            "percent_bonus": {"attack": 28}
+          },
+          {"id": "mage_zodiac", "name": "Sage zodiacal", "parent_id": "mage_astramancer", "percent_bonus": {"speed": 30}}
+        ]
+      }
     ]
   },
   {
-    "id": "ranger",
-    "name": "Rôdeur",
+    "id": "sorcerer",
+    "name": "Sorcier",
+    "emblem": "staff",
+    "description": "Malédictions et pactes occultes.",
+    "base_stats": {"max_hp": 24, "attack": 10, "defense": 3, "speed": 5},
+    "growth": {"max_hp": 4, "attack": 3, "defense": 1, "speed": 2},
+    "tiers": [
+      {
+        "tier": 1, "name": "Hexer", "mastery_required": 0,
+        "nodes": [
+          {"id": "sorcerer_t1", "name": "Hexer", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Sorcier", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "sorcerer_trial_2"},
+        "nodes": [
+          {"id": "sorcerer_t2", "name": "Sorcier", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Occultiste", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "sorcerer_trial_3"},
+        "nodes": [
+          {"id": "sorcerer_t3", "name": "Occultiste", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Démoniste", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "sorcerer_trial_4"},
+        "nodes": [
+          {"id": "sorcerer_t4", "name": "Démoniste", "percent_bonus": {"attack": 15}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Doomcaller", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "sorcerer_trial_5"},
+        "nodes": [
+          {"id": "sorcerer_t5", "name": "Doomcaller", "percent_bonus": {"attack": 25}}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hunter",
+    "name": "Chasseur",
     "emblem": "bow",
-    "description": "Un éclaireur rapide, précis et familier des terres sauvages.",
+    "description": "Pistage, pièges et bêtes sauvages.",
     "base_stats": {"max_hp": 25, "attack": 9, "defense": 4, "speed": 7},
     "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 3},
     "tiers": [
-      {"tier": 1, "name": "Rôdeur", "growth_multiplier": 1.0, "stat_bonus": {}, "requirements": {}},
-      {"tier": 2, "name": "Éclaireur", "growth_multiplier": 1.2, "stat_bonus": {"max_hp": 6, "attack": 3, "speed": 3}, "requirements": {"min_level": 5, "min_rank": "bronze", "quest_id": "ranger_trial"}},
-      {"tier": 3, "name": "Maître des bois", "growth_multiplier": 1.4, "stat_bonus": {"max_hp": 12, "attack": 6, "speed": 6}, "requirements": {"min_level": 15, "min_rank": "gold", "quest_id": "ranger_trial_2"}}
+      {
+        "tier": 1, "name": "Chasseur", "mastery_required": 0,
+        "nodes": [
+          {"id": "hunter_t1", "name": "Chasseur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Rôdeur", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "hunter_trial_2"},
+        "nodes": [
+          {"id": "hunter_t2", "name": "Rôdeur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Trappeur", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "hunter_trial_3"},
+        "nodes": [
+          {"id": "hunter_trapper", "name": "Trappeur", "skills": ["slash"]},
+          {"id": "hunter_beastcaller", "name": "Appel-bête", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Pisteur", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "hunter_trial_4"},
+        "nodes": [
+          {"id": "hunter_tracker", "name": "Pisteur", "parent_id": "hunter_trapper", "percent_bonus": {"speed": 15}},
+          {
+            "id": "hunter_beastmaster",
+            "name": "Maître des bêtes",
+            "parent_id": "hunter_beastcaller",
+            "percent_bonus": {"attack": 15}
+          }
+        ]
+      },
+      {
+        "tier": 5, "name": "Gardien", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "hunter_trial_5"},
+        "nodes": [
+          {"id": "hunter_warden", "name": "Gardien", "parent_id": "hunter_tracker", "percent_bonus": {"defense": 20}},
+          {"id": "hunter_wild", "name": "Maître du sauvage", "parent_id": "hunter_beastmaster", "percent_bonus": {"attack": 22}}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "samurai",
+    "name": "Samouraï",
+    "emblem": "sword",
+    "description": "Tradition martiale et lame parfaite.",
+    "base_stats": {"max_hp": 27, "attack": 10, "defense": 4, "speed": 6},
+    "growth": {"max_hp": 5, "attack": 3, "defense": 1, "speed": 2},
+    "tiers": [
+      {
+        "tier": 1, "name": "Ashigaru", "mastery_required": 0,
+        "nodes": [
+          {"id": "samurai_t1", "name": "Ashigaru", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Bushi", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "samurai_trial_2"},
+        "nodes": [
+          {"id": "samurai_t2", "name": "Bushi", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Samouraï", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "samurai_trial_3"},
+        "nodes": [
+          {"id": "samurai_samurai", "name": "Samouraï", "skills": ["slash"]},
+          {"id": "samurai_ronin", "name": "Ronin", "skills": ["parry"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Daimyo", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "samurai_trial_4"},
+        "nodes": [
+          {"id": "samurai_daimyo", "name": "Daimyo", "parent_id": "samurai_samurai", "percent_bonus": {"max_hp": 15}},
+          {"id": "samurai_kensei", "name": "Kensei", "parent_id": "samurai_ronin", "percent_bonus": {"attack": 18}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Shogun", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "samurai_trial_5"},
+        "nodes": [
+          {"id": "samurai_shogun", "name": "Shogun", "parent_id": "samurai_daimyo", "percent_bonus": {"attack": 20}},
+          {"id": "samurai_saint", "name": "Sword Saint", "parent_id": "samurai_kensei", "percent_bonus": {"attack": 25}}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "necromancer",
+    "name": "Nécromancien",
+    "emblem": "skull",
+    "description": "Maître des ombres et des arts funestes.",
+    "base_stats": {"max_hp": 24, "attack": 7, "defense": 3, "speed": 4},
+    "growth": {"max_hp": 5, "attack": 2, "defense": 1, "speed": 1},
+    "tiers": [
+      {
+        "tier": 1, "name": "Réanimateur", "mastery_required": 0,
+        "nodes": [
+          {"id": "necromancer_t1", "name": "Réanimateur", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Nécromancien", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "necromancer_trial_2"},
+        "nodes": [
+          {"id": "necromancer_t2", "name": "Nécromancien", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Nécrolord", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "necromancer_trial_3"},
+        "nodes": [
+          {"id": "necromancer_t3", "name": "Nécrolord", "skills": ["fireball"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Liche", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "necromancer_trial_4"},
+        "nodes": [
+          {"id": "necromancer_t4", "name": "Liche", "percent_bonus": {"attack": 15}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Roi-liche", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "necromancer_trial_5"},
+        "nodes": [
+          {"id": "necromancer_t5", "name": "Roi-liche", "percent_bonus": {"attack": 25}}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "thief",
+    "name": "Voleur",
+    "emblem": "sword",
+    "description": "Ruse, agilité et précision.",
+    "base_stats": {"max_hp": 23, "attack": 8, "defense": 3, "speed": 8},
+    "growth": {"max_hp": 4, "attack": 2, "defense": 1, "speed": 3},
+    "tiers": [
+      {
+        "tier": 1, "name": "Pickpocket", "mastery_required": 0,
+        "nodes": [
+          {"id": "thief_t1", "name": "Pickpocket", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Voleur", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "thief_trial_2"},
+        "nodes": [
+          {"id": "thief_t2", "name": "Voleur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Cambrioleur", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "thief_trial_3"},
+        "nodes": [
+          {"id": "thief_t3", "name": "Cambrioleur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Maître voleur", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "thief_trial_4"},
+        "nodes": [
+          {"id": "thief_t4", "name": "Maître voleur", "percent_bonus": {"speed": 18}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Roi des voleurs", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "thief_trial_5"},
+        "nodes": [
+          {"id": "thief_t5", "name": "Roi des voleurs", "percent_bonus": {"attack": 22, "speed": 20}}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "assassin",
+    "name": "Assassin",
+    "emblem": "sword",
+    "description": "Embuscade et coup parfait.",
+    "base_stats": {"max_hp": 22, "attack": 10, "defense": 3, "speed": 8},
+    "growth": {"max_hp": 4, "attack": 3, "defense": 1, "speed": 3},
+    "tiers": [
+      {
+        "tier": 1, "name": "Coupe-jarret", "mastery_required": 0,
+        "nodes": [
+          {"id": "assassin_t1", "name": "Coupe-jarret", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 2, "name": "Tueur", "mastery_required": 100,
+        "requirements": {"min_level": 40, "quest_id": "assassin_trial_2"},
+        "nodes": [
+          {"id": "assassin_t2", "name": "Tueur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 3, "name": "Exécuteur", "mastery_required": 250,
+        "requirements": {"min_level": 60, "quest_id": "assassin_trial_3"},
+        "nodes": [
+          {"id": "assassin_t3", "name": "Exécuteur", "skills": ["slash"]}
+        ]
+      },
+      {
+        "tier": 4, "name": "Assassin", "mastery_required": 450,
+        "requirements": {"min_level": 80, "quest_id": "assassin_trial_4"},
+        "nodes": [
+          {"id": "assassin_t4", "name": "Assassin", "percent_bonus": {"attack": 18}}
+        ]
+      },
+      {
+        "tier": 5, "name": "Maître assassin", "mastery_required": 700,
+        "requirements": {"min_level": 100, "quest_id": "assassin_trial_5"},
+        "nodes": [
+          {"id": "assassin_t5", "name": "Maître assassin", "percent_bonus": {"attack": 28, "speed": 20}}
+        ]
+      }
     ]
   }
 ]
